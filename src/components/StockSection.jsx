@@ -88,7 +88,7 @@ const StockSection = () => {
           transition={{ duration: 0.8 }}
           animate={{ y: [0, -20, 0] }}
           style={{ animationDuration: '4s', animationIterationCount: 'infinite' }}
-          src="/images/coin.png"
+          src={`${import.meta.env.BASE_URL}images/coin.png`}
           alt="Crypto Background"
           onError={(e) => {
             e.target.style.display = 'none'

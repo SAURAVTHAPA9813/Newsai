@@ -61,7 +61,7 @@ const HeroV1 = () => {
       <div className="relative w-full" style={{ height: '120vh' }}>
         {/* 3D Globe - Centered */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          <motion.div
+            <motion.div
             className="relative"
             animate={{
               rotate: 360
@@ -73,7 +73,7 @@ const HeroV1 = () => {
             }}
           >
             <img
-              src="/images/ball.png"
+              src={`${import.meta.env.BASE_URL}images/ball.png`}
               alt="Globe"
               className="object-contain opacity-90"
               style={{
@@ -159,7 +159,7 @@ const HeroV1 = () => {
     </h3>
 
     <img
-      src="/images/white card.png"
+      src={`${import.meta.env.BASE_URL}images/white card.png`}
       alt="News Card"
       className="w-full h-[140px] md:h-[160px] object-cover rounded-lg mb-3"
     />

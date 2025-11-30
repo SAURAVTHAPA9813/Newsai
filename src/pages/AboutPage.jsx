@@ -194,7 +194,7 @@ const AboutPage = () => {
                 className="relative"
               >
                 <img
-                  src="/images/CIRCLE AI.png"
+                  src={`${import.meta.env.BASE_URL}images/CIRCLE AI.png`}
                   alt="AI Visualization"
                   className="w-full h-auto drop-shadow-2xl"
                 />
@@ -367,19 +367,19 @@ const AboutPage = () => {
           {/* SLIME background image */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 opacity-5">
             <motion.img
-              src="/images/SLIME.png"
-              alt="Slime"
-              animate={{
-                scale: [1, 1.2, 1],
-                rotate: [0, 180, 360]
-              }}
-              transition={{
-                duration: 10,
-                repeat: Infinity,
-                ease: 'linear'
-              }}
-              className="w-full h-full object-contain"
-            />
+                src={`${import.meta.env.BASE_URL}images/SLIME.png`}
+                alt="Slime"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 180, 360]
+                }}
+                transition={{
+                  duration: 10,
+                  repeat: Infinity,
+                  ease: 'linear'
+                }}
+                className="w-full h-full object-contain"
+              />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">

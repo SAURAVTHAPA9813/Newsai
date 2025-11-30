@@ -142,7 +142,7 @@ const FeatureSection = () => {
               >
                 {/* Phone Image */}
                 <img
-                  src="/images/mobile.png"
+                  src={`${import.meta.env.BASE_URL}images/mobile.png`}
                   alt="Mobile Mockup"
                   className="w-[350px] md:w-[380px] lg:w-[320px] h-auto object-contain mx-auto"
                   style={{
@@ -163,7 +163,7 @@ const FeatureSection = () => {
                     </h4>
 
                     <img
-                      src="/images/white card.png"
+                      src={`${import.meta.env.BASE_URL}images/white card.png`}
                       alt="News"
                       className="w-full h-24 object-cover rounded-lg mb-2"
                       onError={(e) => {

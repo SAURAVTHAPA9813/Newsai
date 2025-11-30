@@ -74,7 +74,7 @@ const PersonalizationSection = () => {
                 className="absolute inset-0 rounded-full overflow-hidden shadow-2xl bg-white/10 backdrop-blur-sm border-4 border-white/30"
               >
                 <img
-                  src="/images/circle.png"
+                  src={`${import.meta.env.BASE_URL}images/circle.png`}
                   alt="How to start with NEWS AI"
                   className="w-full h-full object-cover"
                   onError={(e) => {
