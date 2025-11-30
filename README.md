@@ -32,7 +32,6 @@ npm run dev
 - `npm run preview` — preview production build locally
 - `npm run deploy` — build and publish `dist/` to GitHub Pages (`predeploy` runs automatically)
 
-<<<<<<< HEAD
 ## Project structure (what each piece does)
 - `vite.config.js` — Vite config with GitHub Pages base path.
 - `package.json` — scripts (dev/build/deploy) and dependencies.
@@ -149,16 +148,6 @@ npm run dev
   - `SocialProof.jsx` — testimonials/logos.
   - `StockSection.jsx` — stock highlights.
   - `UseCases.jsx` — use case highlights.
-=======
-## Project structure
-- `src/App.jsx` — routes (HashRouter) and layout wiring
-- `src/pages/` — page-level screens (landing, dashboard workspaces)
-- `src/layouts/` — public and dashboard shells
-- `src/components/` — UI building blocks, dashboard modules, shared UI
-- `src/services/` — mock API/service facades
-- `src/context/AuthContext.jsx` — auth state provider
-- `src/styles/index.css` — global styles
->>>>>>> f3c30fc82623fe78f1025dfbe10adfb6f988cd91
 
 ## Deployment (GitHub Pages)
 The project is set up for static hosting:
