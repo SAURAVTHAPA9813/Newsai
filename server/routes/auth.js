@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { signup, login, getMe } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
+const { validateSignup, validateLogin } = require('../validators/authValidators');
 
 // Public routes
-router.post('/signup', signup);
-router.post('/login', login);
+router.post('/signup', validateSignup, signup);
+router.post('/login', validateLogin, login);
 
 // Protected routes
 router.get('/me', protect, getMe);

@@ -1,49 +1,65 @@
-const axios = require('axios');
+const SavedArticle = require('../models/SavedArticle');
 const Article = require('../models/Article');
 const User = require('../models/User');
+const newsService = require('../services/newsService');
 
-// @desc    Get top headlines
+// @desc    Get latest headlines
 // @route   GET /api/news/headlines
 // @access  Public
-const getHeadlines = async (req, res) => {
+exports.getHeadlines = async (req, res) => {
   try {
-    const { category, country = 'us', pageSize = 10 } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 20;
 
-    const params = {
-      apiKey: process.env.NEWS_API_KEY,
-      country,
-      pageSize
-    };
+    const articles = await newsService.getHeadlines(page, pageSize);
 
-    if (category) {
-      params.category = category;
-    }
-
-    const response = await axios.get('https://newsapi.org/v2/top-headlines', {
-      params
-    });
-
-    res.status(200).json({
+    res.json({
       success: true,
-      data: response.data.articles,
-      totalResults: response.data.totalResults
+      count: articles.length,
+      page,
+      data: articles
     });
-  } catch (error) {
-    console.error('Get headlines error:', error.response?.data || error.message);
+  } catch (err) {
+    console.error('Get headlines error:', err);
     res.status(500).json({
       success: false,
-      message: 'Error fetching headlines',
-      error: error.response?.data?.message || error.message
+      message: err.message || 'Failed to fetch latest news'
     });
   }
 };
 
-// @desc    Search news articles
+// @desc    Get news by category
+// @route   GET /api/news/category/:category
+// @access  Public
+exports.getNewsByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const page = parseInt(req.query.page) || 1;
+
+    const articles = await newsService.getNewsByCategory(category, page);
+
+    res.json({
+      success: true,
+      count: articles.length,
+      category,
+      data: articles
+    });
+  } catch (err) {
+    console.error('Get category news error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to fetch category news'
+    });
+  }
+};
+
+// @desc    Search news
 // @route   GET /api/news/search
 // @access  Public
-const searchNews = async (req, res) => {
+exports.searchNews = async (req, res) => {
   try {
-    const { q, from, to, sortBy = 'publishedAt', pageSize = 10, page = 1 } = req.query;
+    const { q } = req.query;
+    const page = parseInt(req.query.page) || 1;
 
     if (!q) {
       return res.status(400).json({
@@ -52,144 +68,122 @@ const searchNews = async (req, res) => {
       });
     }
 
-    const params = {
-      apiKey: process.env.NEWS_API_KEY,
-      q,
-      sortBy,
-      pageSize,
-      page
-    };
+    const articles = await newsService.searchNews(q, page);
 
-    if (from) params.from = from;
-    if (to) params.to = to;
-
-    const response = await axios.get('https://newsapi.org/v2/everything', {
-      params
-    });
-
-    res.status(200).json({
+    res.json({
       success: true,
-      data: response.data.articles,
-      totalResults: response.data.totalResults
+      count: articles.length,
+      query: q,
+      data: articles
     });
-  } catch (error) {
-    console.error('Search news error:', error.response?.data || error.message);
+  } catch (err) {
+    console.error('Search news error:', err);
     res.status(500).json({
       success: false,
-      message: 'Error searching news',
-      error: error.response?.data?.message || error.message
+      message: err.message || 'Failed to search news'
     });
   }
 };
 
-// @desc    Get news by category
-// @route   GET /api/news/category/:category
-// @access  Public
-const getNewsByCategory = async (req, res) => {
-  try {
-    const { category } = req.params;
-    const { pageSize = 10, page = 1 } = req.query;
-
-    const response = await axios.get('https://newsapi.org/v2/top-headlines', {
-      params: {
-        apiKey: process.env.NEWS_API_KEY,
-        category,
-        pageSize,
-        page
-      }
-    });
-
-    res.status(200).json({
-      success: true,
-      data: response.data.articles,
-      totalResults: response.data.totalResults
-    });
-  } catch (error) {
-    console.error('Get category news error:', error.response?.data || error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching category news',
-      error: error.response?.data?.message || error.message
-    });
-  }
-};
-
-// @desc    Save an article
+// @desc    Save article for user
 // @route   POST /api/news/save
 // @access  Private
-const saveArticle = async (req, res) => {
+exports.saveArticle = async (req, res) => {
   try {
-    const { title, description, content, url, urlToImage, publishedAt, source, author, category } = req.body;
+    const userId = req.user._id;
+    const articleData = req.body;
 
-    // Check if article already exists
-    let article = await Article.findOne({ url });
-
-    if (!article) {
-      // Create new article
-      article = await Article.create({
-        title,
-        description,
-        content,
-        url,
-        urlToImage,
-        publishedAt,
-        source,
-        author,
-        category,
-        savedBy: [req.user._id]
+    // Validate required fields
+    if (!articleData.title || !articleData.url) {
+      return res.status(400).json({
+        success: false,
+        message: 'Article title and URL are required'
       });
-    } else {
-      // Check if user already saved this article
-      if (article.savedBy.includes(req.user._id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Article already saved'
-        });
-      }
-
-      // Add user to savedBy array
-      article.savedBy.push(req.user._id);
-      await article.save();
     }
 
-    // Add article to user's savedArticles
-    await User.findByIdAndUpdate(
-      req.user._id,
-      { $addToSet: { savedArticles: article._id } }
-    );
+    // Find or create article
+    let article = await Article.findOne({ url: articleData.url });
+
+    if (!article) {
+      article = await Article.create({
+        title: articleData.title,
+        description: articleData.description,
+        url: articleData.url,
+        urlToImage: articleData.urlToImage || articleData.imageUrl,
+        source: articleData.source,
+        category: articleData.category || 'general',
+        publishedAt: articleData.publishedAt || new Date(),
+        author: articleData.author
+      });
+    }
+
+    // Check if already saved
+    const existingSave = await SavedArticle.findOne({
+      user: userId,
+      article: article._id
+    });
+
+    if (existingSave) {
+      return res.status(400).json({
+        success: false,
+        message: 'Article already saved'
+      });
+    }
+
+    // Create saved article
+    const saved = await SavedArticle.create({
+      user: userId,
+      article: article._id,
+      articleData: {
+        title: article.title,
+        description: article.description,
+        url: article.url,
+        imageUrl: article.urlToImage,
+        source: article.source,
+        category: article.category,
+        publishedAt: article.publishedAt
+      }
+    });
+
+    // Add to user's savedArticles array
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { savedArticles: article._id }
+    });
 
     res.status(201).json({
       success: true,
-      data: article,
-      message: 'Article saved successfully'
+      message: 'Article saved successfully',
+      data: saved
     });
-  } catch (error) {
-    console.error('Save article error:', error);
+  } catch (err) {
+    console.error('Save article error:', err);
     res.status(500).json({
       success: false,
-      message: 'Error saving article',
-      error: error.message
+      message: err.message || 'Failed to save article'
     });
   }
 };
 
-// @desc    Get saved articles
+// @desc    Get user's saved articles
 // @route   GET /api/news/saved
 // @access  Private
-const getSavedArticles = async (req, res) => {
+exports.getSavedArticles = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('savedArticles');
+    const userId = req.user._id;
+    const saved = await SavedArticle.find({ user: userId })
+      .sort('-createdAt')
+      .populate('article');
 
-    res.status(200).json({
+    res.json({
       success: true,
-      data: user.savedArticles
+      count: saved.length,
+      data: saved
     });
-  } catch (error) {
-    console.error('Get saved articles error:', error);
+  } catch (err) {
+    console.error('Get saved articles error:', err);
     res.status(500).json({
       success: false,
-      message: 'Error fetching saved articles',
-      error: error.message
+      message: err.message || 'Failed to load saved articles'
     });
   }
 };
@@ -197,49 +191,37 @@ const getSavedArticles = async (req, res) => {
 // @desc    Remove saved article
 // @route   DELETE /api/news/saved/:articleId
 // @access  Private
-const removeSavedArticle = async (req, res) => {
+exports.removeSavedArticle = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { articleId } = req.params;
 
-    // Remove article from user's savedArticles
-    await User.findByIdAndUpdate(
-      req.user._id,
-      { $pull: { savedArticles: articleId } }
-    );
+    const deleted = await SavedArticle.findOneAndDelete({
+      _id: articleId,
+      user: userId
+    });
 
-    // Remove user from article's savedBy array
-    const article = await Article.findById(articleId);
-    if (article) {
-      article.savedBy = article.savedBy.filter(
-        userId => userId.toString() !== req.user._id.toString()
-      );
-      await article.save();
-
-      // If no users have saved this article, delete it
-      if (article.savedBy.length === 0) {
-        await Article.findByIdAndDelete(articleId);
-      }
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Saved article not found'
+      });
     }
 
-    res.status(200).json({
-      success: true,
-      message: 'Article removed from saved list'
+    // Remove from user's savedArticles array
+    await User.findByIdAndUpdate(userId, {
+      $pull: { savedArticles: deleted.article }
     });
-  } catch (error) {
-    console.error('Remove saved article error:', error);
+
+    res.json({
+      success: true,
+      message: 'Article removed from saved'
+    });
+  } catch (err) {
+    console.error('Delete saved article error:', err);
     res.status(500).json({
       success: false,
-      message: 'Error removing saved article',
-      error: error.message
+      message: err.message || 'Failed to delete saved article'
     });
   }
-};
-
-module.exports = {
-  getHeadlines,
-  searchNews,
-  getNewsByCategory,
-  saveArticle,
-  getSavedArticles,
-  removeSavedArticle
 };
