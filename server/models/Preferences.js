@@ -2,6 +2,19 @@ const mongoose = require('mongoose');
 
 const topicPreferenceSchema = new mongoose.Schema({
   topicId: { type: String, required: true },
+  // New Topic Matrix fields
+  priorityOverride: { type: Number, default: 50, min: 0, max: 100 },
+  firewallStatus: {
+    type: String,
+    enum: ['ALLOWED', 'LIMITED', 'BLOCKED'],
+    default: 'ALLOWED'
+  },
+  feedPreferences: {
+    showMore: { type: Boolean, default: false },
+    onlyHighCredibility: { type: Boolean, default: false },
+    includeExplainers: { type: Boolean, default: false }
+  },
+  // Legacy fields (kept for backward compatibility)
   priority: { type: Number, default: 5, min: 0, max: 10 },
   keywords: [String],
   blockedKeywords: [String],
@@ -73,6 +86,7 @@ const preferencesSchema = new mongoose.Schema(
       },
       blockedSources: [String],
       blockedTopics: [String],
+      blockedKeywords: [String], // Added for feed filtering
       sensationalismFilter: {
         enabled: { type: Boolean, default: true },
         aggressiveness: {

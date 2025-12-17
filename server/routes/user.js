@@ -4,18 +4,118 @@ const { protect } = require('../middleware/auth');
 const User = require('../models/User');
 const Preferences = require('../models/Preferences');
 
-// Default topics list
+// Default topics list with full UI-compatible shape
 const DEFAULT_TOPICS = [
-  { id: 'tech', name: 'Technology', category: 'industry', defaultPriority: 7 },
-  { id: 'ai', name: 'Artificial Intelligence', category: 'tech', defaultPriority: 8 },
-  { id: 'crypto', name: 'Cryptocurrency', category: 'finance', defaultPriority: 5 },
-  { id: 'politics', name: 'Politics', category: 'general', defaultPriority: 5 },
-  { id: 'economy', name: 'Economy', category: 'finance', defaultPriority: 7 },
-  { id: 'climate', name: 'Climate Change', category: 'environment', defaultPriority: 6 },
-  { id: 'health', name: 'Health & Medicine', category: 'health', defaultPriority: 7 },
-  { id: 'science', name: 'Science', category: 'general', defaultPriority: 6 },
-  { id: 'business', name: 'Business', category: 'industry', defaultPriority: 6 },
-  { id: 'sports', name: 'Sports', category: 'entertainment', defaultPriority: 3 }
+  {
+    id: 'tech',
+    name: 'Technology',
+    categories: ['industry', 'tech'],
+    priority: 70,
+    trendScore: 75,
+    firewallStatus: 'ALLOWED',
+    description: 'Latest technology news and innovations',
+    stats: { mentions7d: 1250, avgCredibility: 82 },
+    relatedIds: ['ai', 'business']
+  },
+  {
+    id: 'ai',
+    name: 'Artificial Intelligence',
+    categories: ['tech', 'science'],
+    priority: 80,
+    trendScore: 92,
+    firewallStatus: 'ALLOWED',
+    description: 'AI developments, machine learning, and automation',
+    stats: { mentions7d: 2100, avgCredibility: 85 },
+    relatedIds: ['tech', 'science']
+  },
+  {
+    id: 'crypto',
+    name: 'Cryptocurrency',
+    categories: ['finance', 'tech'],
+    priority: 50,
+    trendScore: 65,
+    firewallStatus: 'ALLOWED',
+    description: 'Cryptocurrency markets and blockchain technology',
+    stats: { mentions7d: 890, avgCredibility: 70 },
+    relatedIds: ['economy', 'tech']
+  },
+  {
+    id: 'politics',
+    name: 'Politics',
+    categories: ['general', 'politics'],
+    priority: 50,
+    trendScore: 70,
+    firewallStatus: 'ALLOWED',
+    description: 'Political news and government policy',
+    stats: { mentions7d: 3200, avgCredibility: 75 },
+    relatedIds: ['economy', 'climate']
+  },
+  {
+    id: 'economy',
+    name: 'Economy',
+    categories: ['finance', 'business'],
+    priority: 70,
+    trendScore: 78,
+    firewallStatus: 'ALLOWED',
+    description: 'Economic trends, markets, and financial news',
+    stats: { mentions7d: 1800, avgCredibility: 80 },
+    relatedIds: ['business', 'crypto']
+  },
+  {
+    id: 'climate',
+    name: 'Climate Change',
+    categories: ['environment', 'science'],
+    priority: 60,
+    trendScore: 72,
+    firewallStatus: 'ALLOWED',
+    description: 'Climate science, environmental policy, and sustainability',
+    stats: { mentions7d: 950, avgCredibility: 88 },
+    relatedIds: ['science', 'politics']
+  },
+  {
+    id: 'health',
+    name: 'Health & Medicine',
+    categories: ['health', 'science'],
+    priority: 70,
+    trendScore: 80,
+    firewallStatus: 'ALLOWED',
+    description: 'Medical breakthroughs, public health, and wellness',
+    stats: { mentions7d: 1600, avgCredibility: 90 },
+    relatedIds: ['science', 'ai']
+  },
+  {
+    id: 'science',
+    name: 'Science',
+    categories: ['general', 'science'],
+    priority: 60,
+    trendScore: 68,
+    firewallStatus: 'ALLOWED',
+    description: 'Scientific discoveries and research',
+    stats: { mentions7d: 720, avgCredibility: 92 },
+    relatedIds: ['health', 'climate', 'ai']
+  },
+  {
+    id: 'business',
+    name: 'Business',
+    categories: ['industry', 'business'],
+    priority: 60,
+    trendScore: 74,
+    firewallStatus: 'ALLOWED',
+    description: 'Corporate news, startups, and industry trends',
+    stats: { mentions7d: 1400, avgCredibility: 78 },
+    relatedIds: ['economy', 'tech']
+  },
+  {
+    id: 'sports',
+    name: 'Sports',
+    categories: ['entertainment', 'sports'],
+    priority: 30,
+    trendScore: 55,
+    firewallStatus: 'ALLOWED',
+    description: 'Sports news, scores, and athlete updates',
+    stats: { mentions7d: 2500, avgCredibility: 72 },
+    relatedIds: []
+  }
 ];
 
 // @desc    Get user preferences
@@ -308,7 +408,15 @@ router.put('/ai-policy', protect, async (req, res) => {
 router.put('/topics/:topicId', protect, async (req, res) => {
   try {
     const { topicId } = req.params;
-    const { priority, keywords, blockedKeywords, notificationEnabled, frequencyPreference } = req.body;
+    const {
+      priorityOverride,
+      firewallStatus,
+      feedPreferences,
+      keywords,
+      blockedKeywords,
+      notificationEnabled,
+      frequencyPreference
+    } = req.body;
 
     let preferences = await Preferences.findOne({ user: req.user._id });
 
@@ -319,13 +427,39 @@ router.put('/topics/:topicId', protect, async (req, res) => {
     // Find existing preference or create new one
     const existingIndex = preferences.topicPreferences.findIndex(p => p.topicId === topicId);
 
+    // Defensive validation with safe defaults - never throw on bad payload
+    const allowedFirewall = ['ALLOWED', 'LIMITED', 'BLOCKED'];
+    const allowedFreq = ['high', 'medium', 'low'];
+
+    // Clamp priority to 0-100 range, default 50
+    const prio = Number.isFinite(priorityOverride)
+      ? Math.min(Math.max(priorityOverride, 0), 100)
+      : (existingIndex >= 0 ? preferences.topicPreferences[existingIndex].priorityOverride || 50 : 50);
+
+    // Validate firewall status
+    const firewall = allowedFirewall.includes(firewallStatus) ? firewallStatus : 'ALLOWED';
+
+    // Validate frequency preference
+    const freq = allowedFreq.includes(frequencyPreference) ? frequencyPreference : 'medium';
+
+    // Validate feed preferences with boolean coercion
+    const feed = {
+      showMore: !!(feedPreferences?.showMore),
+      onlyHighCredibility: !!(feedPreferences?.onlyHighCredibility),
+      includeExplainers: !!(feedPreferences?.includeExplainers)
+    };
+
     const newPreference = {
       topicId,
-      priority: priority !== undefined ? priority : 5,
-      keywords: keywords || [],
-      blockedKeywords: blockedKeywords || [],
-      notificationEnabled: notificationEnabled !== undefined ? notificationEnabled : true,
-      frequencyPreference: frequencyPreference || 'medium'
+      // Support both priorityOverride (new) and priority (old)
+      priorityOverride: prio,
+      priority: Math.min(Math.round(prio / 10), 10), // Scale 0-100 to 0-10 for legacy field
+      firewallStatus: firewall,
+      feedPreferences: feed,
+      keywords: Array.isArray(keywords) ? keywords : [],
+      blockedKeywords: Array.isArray(blockedKeywords) ? blockedKeywords : [],
+      notificationEnabled: notificationEnabled !== undefined ? !!notificationEnabled : true,
+      frequencyPreference: freq
     };
 
     if (existingIndex >= 0) {
@@ -334,7 +468,10 @@ router.put('/topics/:topicId', protect, async (req, res) => {
       preferences.topicPreferences.push(newPreference);
     }
 
-    await preferences.save();
+    await preferences.save({ validateBeforeSave: true });
+
+    console.log('Topic preference updated successfully for topic:', topicId);
+    console.log('User:', req.user._id, 'Priority:', prio, 'Firewall:', firewall);
 
     res.json({
       success: true,
@@ -343,9 +480,18 @@ router.put('/topics/:topicId', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Update topic preference error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      topicId: req.params.topicId,
+      body: req.body,
+      userId: req.user?._id
+    });
     res.status(500).json({
       success: false,
-      message: 'Error updating topic preference'
+      message: 'Error updating topic preference',
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

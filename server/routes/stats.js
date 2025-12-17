@@ -10,7 +10,7 @@ const DEFAULT_BADGES = [
     id: 'first_quiz',
     name: 'Getting Started',
     description: 'Complete your first quiz',
-    icon: '🎯',
+    icon: 'FiTarget',
     category: 'quiz',
     tier: 'bronze',
     xpReward: 25,
@@ -20,7 +20,7 @@ const DEFAULT_BADGES = [
     id: 'quiz_master_10',
     name: 'Quiz Enthusiast',
     description: 'Complete 10 quizzes',
-    icon: '📚',
+    icon: 'FiBook',
     category: 'quiz',
     tier: 'silver',
     xpReward: 50,
@@ -30,7 +30,7 @@ const DEFAULT_BADGES = [
     id: 'quiz_master_50',
     name: 'Quiz Master',
     description: 'Complete 50 quizzes',
-    icon: '🎓',
+    icon: 'FiAward',
     category: 'quiz',
     tier: 'gold',
     xpReward: 100,
@@ -40,7 +40,7 @@ const DEFAULT_BADGES = [
     id: 'perfect_score',
     name: 'Perfectionist',
     description: 'Get a perfect score on any quiz',
-    icon: '💯',
+    icon: 'FiCheckCircle',
     category: 'quiz',
     tier: 'gold',
     xpReward: 75,
@@ -50,7 +50,7 @@ const DEFAULT_BADGES = [
     id: 'perfect_score_10',
     name: 'Flawless Victory',
     description: 'Get 10 perfect scores',
-    icon: '👑',
+    icon: 'FiStar',
     category: 'quiz',
     tier: 'platinum',
     xpReward: 150,
@@ -62,7 +62,7 @@ const DEFAULT_BADGES = [
     id: 'streak_7',
     name: 'Week Warrior',
     description: 'Maintain a 7-day streak',
-    icon: '🔥',
+    icon: 'FiZap',
     category: 'streak',
     tier: 'silver',
     xpReward: 50,
@@ -72,7 +72,7 @@ const DEFAULT_BADGES = [
     id: 'streak_30',
     name: 'Monthly Champion',
     description: 'Maintain a 30-day streak',
-    icon: '⚡',
+    icon: 'FiZap',
     category: 'streak',
     tier: 'gold',
     xpReward: 150,
@@ -82,7 +82,7 @@ const DEFAULT_BADGES = [
     id: 'streak_100',
     name: 'Centurion',
     description: 'Maintain a 100-day streak',
-    icon: '💎',
+    icon: 'FiStar',
     category: 'streak',
     tier: 'diamond',
     xpReward: 500,
@@ -94,7 +94,7 @@ const DEFAULT_BADGES = [
     id: 'reader_10',
     name: 'Curious Reader',
     description: 'Read 10 articles',
-    icon: '📖',
+    icon: 'FiBook',
     category: 'reading',
     tier: 'bronze',
     xpReward: 25,
@@ -104,7 +104,7 @@ const DEFAULT_BADGES = [
     id: 'reader_100',
     name: 'Avid Reader',
     description: 'Read 100 articles',
-    icon: '📚',
+    icon: 'FiBook',
     category: 'reading',
     tier: 'silver',
     xpReward: 75,
@@ -116,7 +116,7 @@ const DEFAULT_BADGES = [
     id: 'tech_expert',
     name: 'Tech Savvy',
     description: 'Complete 20 technology quizzes',
-    icon: '💻',
+    icon: 'FiMonitor',
     category: 'expertise',
     tier: 'gold',
     xpReward: 100,
@@ -126,7 +126,7 @@ const DEFAULT_BADGES = [
     id: 'science_expert',
     name: 'Science Guru',
     description: 'Complete 20 science quizzes',
-    icon: '🔬',
+    icon: 'FiActivity',
     category: 'expertise',
     tier: 'gold',
     xpReward: 100,
@@ -338,6 +338,69 @@ router.get('/leaderboard', protect, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching leaderboard'
+    });
+  }
+});
+
+// @desc    Get reading summary for today
+// @route   GET /api/stats/reading-summary
+// @access  Private
+router.get('/reading-summary', protect, async (req, res) => {
+  try {
+    const userStats = await UserStats.findOne({ user: req.user._id });
+
+    if (!userStats) {
+      return res.json({
+        success: true,
+        data: {
+          articlesReadToday: 0,
+          timeSpentToday: 0,
+          xpGainedToday: 0,
+          currentStreak: 0
+        }
+      });
+    }
+
+    // Calculate today's stats from recent activity
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayActivities = userStats.recentActivity.filter(activity => {
+      const activityDate = new Date(activity.timestamp);
+      activityDate.setHours(0, 0, 0, 0);
+      return activityDate.getTime() === today.getTime();
+    });
+
+    // Calculate articles read today (from reading stats or activity)
+    const articlesReadToday = todayActivities.filter(a =>
+      a.type === 'article_read' || a.type === 'reading'
+    ).length;
+
+    // Estimate time spent (avg 2 minutes per article)
+    const timeSpentToday = articlesReadToday * 2;
+
+    // Calculate XP gained today from activities
+    const xpGainedToday = todayActivities.reduce((sum, activity) =>
+      sum + (activity.xpGained || 0), 0
+    );
+
+    res.json({
+      success: true,
+      data: {
+        articlesReadToday,
+        timeSpentToday,
+        xpGainedToday,
+        currentStreak: userStats.streaks.current,
+        totalArticlesRead: userStats.readingStats.articlesRead,
+        level: userStats.level,
+        totalXP: userStats.totalXP
+      }
+    });
+  } catch (error) {
+    console.error('Get reading summary error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching reading summary'
     });
   }
 });

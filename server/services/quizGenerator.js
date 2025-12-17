@@ -10,7 +10,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
  */
 async function generateQuizFromArticles(articles, questionCount = 7) {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    // Using new SDK
 
     // Create comprehensive prompt for quiz generation
     const articlesText = articles.map((article, index) => {
@@ -44,6 +44,7 @@ Return ONLY a valid JSON array with this EXACT format (no markdown, no code bloc
 
 Make sure the JSON is valid and parseable. Return ONLY the JSON array, nothing else.`;
 
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 
@@ -97,27 +98,43 @@ Make sure the JSON is valid and parseable. Return ONLY the JSON array, nothing e
 function createFallbackQuiz(articles) {
   const questions = [];
 
-  // Create simple questions from article titles
-  articles.slice(0, 5).forEach((article, index) => {
-    const words = article.title.split(' ');
-    const topic = words.slice(0, 3).join(' ');
+  // Create more intelligent questions from article content
+  articles.slice(0, 7).forEach((article, index) => {
+    // Extract key information from title
+    const title = article.title;
+    const description = article.description || '';
+    const source = article.source?.name || 'Unknown Source';
 
+    // Create a factual question
     questions.push({
-      question: `What is this headline about: "${article.title}"?`,
+      question: `Based on this headline: "${title.substring(0, 80)}${title.length > 80 ? '...' : ''}" - Which news source reported this?`,
       options: [
-        article.source?.name || 'News Source',
-        'Sports',
-        'Entertainment',
-        'Weather'
-      ],
+        source,
+        'Reuters',
+        'Associated Press',
+        'Bloomberg'
+      ].filter((v, i, a) => a.indexOf(v) === i).slice(0, 4), // Remove duplicates, take first 4
       correctAnswer: 0,
-      explanation: `This article is from ${article.source?.name || 'a news source'}.`,
-      difficulty: 'easy',
+      explanation: `This news was reported by ${source}. ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
+      difficulty: 'medium',
       points: 10
     });
   });
 
-  return questions;
+  // Ensure we have at least 5 questions
+  while (questions.length < 5 && articles.length > 0) {
+    const article = articles[questions.length % articles.length];
+    questions.push({
+      question: `What topic does this headline cover: "${article.title.substring(0, 60)}..."?`,
+      options: ['Current Events', 'Historical Analysis', 'Opinion Piece', 'Feature Story'],
+      correctAnswer: 0,
+      explanation: `This is a current news headline from ${article.source?.name || 'a news source'}.`,
+      difficulty: 'easy',
+      points: 10
+    });
+  }
+
+  return questions.slice(0, 7);
 }
 
 module.exports = { generateQuizFromArticles };

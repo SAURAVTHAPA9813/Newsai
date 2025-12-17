@@ -13,7 +13,16 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 async function main() {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // First, list available models
+    console.log('Listing available models...');
+    const models = await genAI.listModels();
+    console.log('Available models:');
+    models.forEach(model => {
+      console.log(`- ${model.name}`);
+    });
+
+    // Then try to use a model
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
     const prompt = 'Explain what News AI could do as a personal news assistant in 3 bullet points.';
 

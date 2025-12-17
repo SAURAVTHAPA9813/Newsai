@@ -3,18 +3,118 @@ const router = express.Router();
 const { protect } = require('../middleware/auth');
 const Preferences = require('../models/Preferences');
 
-// Default topics list (can be expanded)
+// Default topics list with full UI-compatible shape
 const DEFAULT_TOPICS = [
-  { id: 'tech', name: 'Technology', category: 'industry', defaultPriority: 7 },
-  { id: 'ai', name: 'Artificial Intelligence', category: 'tech', defaultPriority: 8 },
-  { id: 'crypto', name: 'Cryptocurrency', category: 'finance', defaultPriority: 5 },
-  { id: 'politics', name: 'Politics', category: 'general', defaultPriority: 5 },
-  { id: 'economy', name: 'Economy', category: 'finance', defaultPriority: 7 },
-  { id: 'climate', name: 'Climate Change', category: 'environment', defaultPriority: 6 },
-  { id: 'health', name: 'Health & Medicine', category: 'health', defaultPriority: 7 },
-  { id: 'science', name: 'Science', category: 'general', defaultPriority: 6 },
-  { id: 'business', name: 'Business', category: 'industry', defaultPriority: 6 },
-  { id: 'sports', name: 'Sports', category: 'entertainment', defaultPriority: 3 }
+  {
+    id: 'tech',
+    name: 'Technology',
+    categories: ['industry', 'tech'],
+    priority: 70,
+    trendScore: 75,
+    firewallStatus: 'ALLOWED',
+    description: 'Latest technology news and innovations',
+    stats: { mentions7d: 1250, avgCredibility: 82 },
+    relatedIds: ['ai', 'business']
+  },
+  {
+    id: 'ai',
+    name: 'Artificial Intelligence',
+    categories: ['tech', 'science'],
+    priority: 80,
+    trendScore: 92,
+    firewallStatus: 'ALLOWED',
+    description: 'AI developments, machine learning, and automation',
+    stats: { mentions7d: 2100, avgCredibility: 85 },
+    relatedIds: ['tech', 'science']
+  },
+  {
+    id: 'crypto',
+    name: 'Cryptocurrency',
+    categories: ['finance', 'tech'],
+    priority: 50,
+    trendScore: 65,
+    firewallStatus: 'ALLOWED',
+    description: 'Cryptocurrency markets and blockchain technology',
+    stats: { mentions7d: 890, avgCredibility: 70 },
+    relatedIds: ['economy', 'tech']
+  },
+  {
+    id: 'politics',
+    name: 'Politics',
+    categories: ['general', 'politics'],
+    priority: 50,
+    trendScore: 70,
+    firewallStatus: 'ALLOWED',
+    description: 'Political news and government policy',
+    stats: { mentions7d: 3200, avgCredibility: 75 },
+    relatedIds: ['economy', 'climate']
+  },
+  {
+    id: 'economy',
+    name: 'Economy',
+    categories: ['finance', 'business'],
+    priority: 70,
+    trendScore: 78,
+    firewallStatus: 'ALLOWED',
+    description: 'Economic trends, markets, and financial news',
+    stats: { mentions7d: 1800, avgCredibility: 80 },
+    relatedIds: ['business', 'crypto']
+  },
+  {
+    id: 'climate',
+    name: 'Climate Change',
+    categories: ['environment', 'science'],
+    priority: 60,
+    trendScore: 72,
+    firewallStatus: 'ALLOWED',
+    description: 'Climate science, environmental policy, and sustainability',
+    stats: { mentions7d: 950, avgCredibility: 88 },
+    relatedIds: ['science', 'politics']
+  },
+  {
+    id: 'health',
+    name: 'Health & Medicine',
+    categories: ['health', 'science'],
+    priority: 70,
+    trendScore: 80,
+    firewallStatus: 'ALLOWED',
+    description: 'Medical breakthroughs, public health, and wellness',
+    stats: { mentions7d: 1600, avgCredibility: 90 },
+    relatedIds: ['science', 'ai']
+  },
+  {
+    id: 'science',
+    name: 'Science',
+    categories: ['general', 'science'],
+    priority: 60,
+    trendScore: 68,
+    firewallStatus: 'ALLOWED',
+    description: 'Scientific discoveries and research',
+    stats: { mentions7d: 720, avgCredibility: 92 },
+    relatedIds: ['health', 'climate', 'ai']
+  },
+  {
+    id: 'business',
+    name: 'Business',
+    categories: ['industry', 'business'],
+    priority: 60,
+    trendScore: 74,
+    firewallStatus: 'ALLOWED',
+    description: 'Corporate news, startups, and industry trends',
+    stats: { mentions7d: 1400, avgCredibility: 78 },
+    relatedIds: ['economy', 'tech']
+  },
+  {
+    id: 'sports',
+    name: 'Sports',
+    categories: ['entertainment', 'sports'],
+    priority: 30,
+    trendScore: 55,
+    firewallStatus: 'ALLOWED',
+    description: 'Sports news, scores, and athlete updates',
+    stats: { mentions7d: 2500, avgCredibility: 72 },
+    relatedIds: []
+  }
 ];
 
 // @desc    Get complete topic matrix state
