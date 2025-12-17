@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "title": "AI Revolution: How Machine Learning is Transforming Industries",
+    "summary": "Artificial intelligence continues to reshape business landscapes across sectors, from healthcare to finance, enabling unprecedented efficiency and innovation.",
+    "category": "Technology",
+    "source": "Tech Insider",
+    "date": "2025-11-14",
+    "imageUrl": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&h=400&fit=crop",
+    "articleUrl": "#"
+  },
+  {
+    "id": 2,
+    "title": "Global Markets Show Strong Recovery Signs",
+    "summary": "Stock markets worldwide demonstrate resilience as economic indicators point to sustained growth and investor confidence returns.",
+    "category": "Finance",
+    "source": "Financial Times",
+    "date": "2025-11-14",
+    "imageUrl": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&h=400&fit=crop",
+    "articleUrl": "#"
+  },
+  {
+    "id": 3,
+    "title": "Cryptocurrency Adoption Reaches New Milestones",
+    "summary": "Digital currencies gain mainstream acceptance as more institutions integrate blockchain technology into their operations.",
+    "category": "Crypto",
+    "source": "Crypto Daily",
+    "date": "2025-11-13",
+    "imageUrl": "https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=600&h=400&fit=crop",
+    "articleUrl": "#"
+  },
+  {
+    "id": 4,
+    "title": "Startups Reshape Traditional Business Models",
+    "summary": "Innovation and agility drive new companies to challenge established industry giants with disruptive technologies.",
+    "category": "Business",
+    "source": "Business Weekly",
+    "date": "2025-11-13",
+    "imageUrl": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&h=400&fit=crop",
+    "articleUrl": "#"
+  },
+  {
+    "id": 5,
+    "title": "Quantum Computing Breakthrough Announced",
+    "summary": "Scientists achieve major milestone in quantum computing, opening new possibilities for complex problem-solving.",
+    "category": "Technology",
+    "source": "Science Today",
+    "date": "2025-11-12",
+    "imageUrl": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=400&fit=crop",
+    "articleUrl": "#"
+  },
+  {
+    "id": 6,
+    "title": "Global Climate Summit Yields New Agreements",
+    "summary": "World leaders commit to ambitious targets as climate action takes center stage in international policy.",
+    "category": "World News",
+    "source": "World Report",
+    "date": "2025-11-12",
+    "imageUrl": "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=600&h=400&fit=crop",
+    "articleUrl": "#"
+  }
+]
