@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiCpu, FiStar } from 'react-icons/fi';
-import DailyCognitiveDrill from '../components/iqlab/DailyCognitiveDrill';
-import NeuralProficiencyMatrix from '../components/iqlab/NeuralProficiencyMatrix';
-import StreakMonitor from '../components/iqlab/StreakMonitor';
-import AchievementBadges from '../components/iqlab/AchievementBadges';
-import PhilosophyModule from '../components/iqlab/PhilosophyModule';
-import getBadgeIcon from '../utils/badgeIcons';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiCpu, FiStar } from "react-icons/fi";
+import DailyCognitiveDrill from "../components/iqlab/DailyCognitiveDrill";
+import NeuralProficiencyMatrix from "../components/iqlab/NeuralProficiencyMatrix";
+import StreakMonitor from "../components/iqlab/StreakMonitor";
+import AchievementBadges from "../components/iqlab/AchievementBadges";
+import PhilosophyModule from "../components/iqlab/PhilosophyModule";
+import getBadgeIcon from "../utils/badgeIcons";
 import {
   getIQLabState,
   submitDrillAttempt,
-  unlockBadge
-} from '../services/mockIQLabAPI';
+  unlockBadge,
+} from "../services/iqLabAPI";
 
 const IQLabPage = () => {
   const [loading, setLoading] = useState(true);
@@ -38,7 +38,7 @@ const IQLabPage = () => {
     if (result.attempt.earnedXp > 0) {
       setXpToast({
         amount: result.attempt.earnedXp,
-        type: result.attempt.countsForDailyReward ? 'DAILY' : 'PRACTICE'
+        type: result.attempt.countsForDailyReward ? "DAILY" : "PRACTICE",
       });
       setTimeout(() => setXpToast(null), 3000);
     }
@@ -49,16 +49,18 @@ const IQLabPage = () => {
 
   // Check if any badges should be unlocked
   const checkBadgeUnlocks = async (currentState) => {
-    const lockedBadges = currentState.badges.filter(b => b.status === 'LOCKED');
+    const lockedBadges = currentState.badges.filter(
+      (b) => b.status === "LOCKED"
+    );
 
     for (const badge of lockedBadges) {
       const { type, threshold, field } = badge.criteria;
       let currentValue = 0;
 
       // Get current value based on criteria type
-      if (field === 'currentStreak') {
+      if (field === "currentStreak") {
         currentValue = currentState.streak.currentStreak;
-      } else if (field === 'drillsCompletedCount') {
+      } else if (field === "drillsCompletedCount") {
         currentValue = currentState.todayAttempts.length;
       }
       // Add more field mappings as needed
@@ -80,8 +82,8 @@ const IQLabPage = () => {
       <div className="min-h-screen section-gradient-radial flex items-center justify-center">
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full"
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full"
         />
       </div>
     );
@@ -101,7 +103,9 @@ const IQLabPage = () => {
               <FiCpu className="text-white text-3xl" />
             </div>
             <div>
-              <h1 className="font-cinzel text-4xl font-bold text-text-dark">IQ Lab</h1>
+              <h1 className="font-cinzel text-4xl font-bold text-text-dark">
+                IQ Lab
+              </h1>
               <p className="text-text-secondary text-lg">
                 Train your News Intelligence and unlock your cognitive potential
               </p>
@@ -113,11 +117,12 @@ const IQLabPage = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mt-6 p-4 rounded-2xl border border-purple-500/30"
+            className="mt-6 p-4 rounded-2xl border border-sky-500/30"
             style={{
-              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)'
+              background:
+                "linear-gradient(135deg, rgba(91, 141, 239, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
             }}
           >
             <div className="flex items-center justify-between mb-2">
@@ -131,14 +136,16 @@ const IQLabPage = () => {
               </div>
               <div className="text-right">
                 <div className="text-xs text-text-secondary">Total XP</div>
-                <div className="text-sm font-bold text-blue-700">{state.newsIq.xpTotal}</div>
+                <div className="text-sm font-bold text-blue-700">
+                  {state.newsIq.xpTotal}
+                </div>
               </div>
             </div>
             <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${state.newsIq.score}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
+                transition={{ duration: 1, ease: "easeOut" }}
                 className="h-full bg-gradient-to-r from-blue-500 to-blue-300 rounded-full"
               />
             </div>
@@ -188,15 +195,16 @@ const IQLabPage = () => {
             initial={{ opacity: 0, y: 50, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.8 }}
-            transition={{ type: 'spring', damping: 15 }}
+            transition={{ type: "spring", damping: 15 }}
             className="fixed bottom-8 right-8 z-50"
           >
             <div
               className="px-6 py-4 rounded-2xl shadow-2xl border-2 border-green-400"
               style={{
-                background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.95) 0%, rgba(16, 185, 129, 0.95) 100%)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)'
+                background:
+                  "linear-gradient(135deg, rgba(34, 197, 94, 0.95) 0%, rgba(16, 185, 129, 0.95) 100%)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
               }}
             >
               <div className="flex items-center gap-3">
@@ -206,7 +214,9 @@ const IQLabPage = () => {
                     +{xpToast.amount} XP
                   </div>
                   <div className="text-xs text-green-100 font-semibold uppercase tracking-wider">
-                    {xpToast.type === 'DAILY' ? 'Daily Drill Complete' : 'Practice Complete'}
+                    {xpToast.type === "DAILY"
+                      ? "Daily Drill Complete"
+                      : "Practice Complete"}
                   </div>
                 </div>
               </div>
@@ -222,16 +232,17 @@ const IQLabPage = () => {
             initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             exit={{ opacity: 0, scale: 0.5, rotate: 10 }}
-            transition={{ type: 'spring', damping: 12 }}
+            transition={{ type: "spring", damping: 12 }}
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
           >
             <div
               className="p-8 rounded-3xl shadow-2xl border-4 border-yellow-400 text-center"
               style={{
-                background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.98) 0%, rgba(245, 158, 11, 0.98) 100%)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                minWidth: '320px'
+                background:
+                  "linear-gradient(135deg, rgba(251, 191, 36, 0.98) 0%, rgba(245, 158, 11, 0.98) 100%)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                minWidth: "320px",
               }}
             >
               <motion.div
@@ -239,7 +250,7 @@ const IQLabPage = () => {
                 transition={{ duration: 0.5, repeat: 2 }}
                 className="mb-4 flex items-center justify-center"
               >
-                {getBadgeIcon(badgeToast.icon, 'text-7xl')}
+                {getBadgeIcon(badgeToast.icon, "text-7xl")}
               </motion.div>
               <div className="text-3xl font-black text-amber-900 mb-2">
                 Badge Unlocked!

@@ -1,21 +1,21 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FiGrid } from 'react-icons/fi';
-import ContextProfileCard from '../components/topicmatrix/ContextProfileCard';
-import AIInstructionsCard from '../components/topicmatrix/AIInstructionsCard';
-import FirewallCard from '../components/topicmatrix/FirewallCard';
-import TopicControlsBar from '../components/topicmatrix/TopicControlsBar';
-import TopicMatrixGrid from '../components/topicmatrix/TopicMatrixGrid';
-import RelatedTopicsStrip from '../components/topicmatrix/RelatedTopicsStrip';
-import TopicDetailCard from '../components/topicmatrix/TopicDetailCard';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { FiGrid } from "react-icons/fi";
+import ContextProfileCard from "../components/topicmatrix/ContextProfileCard";
+import AIInstructionsCard from "../components/topicmatrix/AIInstructionsCard";
+import FirewallCard from "../components/topicmatrix/FirewallCard";
+import TopicControlsBar from "../components/topicmatrix/TopicControlsBar";
+import TopicMatrixGrid from "../components/topicmatrix/TopicMatrixGrid";
+import RelatedTopicsStrip from "../components/topicmatrix/RelatedTopicsStrip";
+import TopicDetailCard from "../components/topicmatrix/TopicDetailCard";
 import {
   getTopicMatrixState,
   updateContextProfile,
   updateFirewallSettings,
   updateAiPolicy,
   updateTopicPreference,
-  updateUIState
-} from '../services/mockTopicMatrixAPI';
+  updateUIState,
+} from "../services/topicMatrixAPI";
 
 const TopicMatrixPage = () => {
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ const TopicMatrixPage = () => {
   const handleFirewallChange = async (settings) => {
     setState((prev) => ({
       ...prev,
-      firewallSettings: settings
+      firewallSettings: settings,
     }));
     await updateFirewallSettings(settings);
   };
@@ -54,7 +54,7 @@ const TopicMatrixPage = () => {
     const newUIState = { selectedTopicId: topicId };
     setState((prev) => ({
       ...prev,
-      uiState: { ...prev.uiState, ...newUIState }
+      uiState: { ...prev.uiState, ...newUIState },
     }));
     await updateUIState(newUIState);
   };
@@ -62,7 +62,7 @@ const TopicMatrixPage = () => {
   const handleUIStateChange = async (changes) => {
     setState((prev) => ({
       ...prev,
-      uiState: { ...prev.uiState, ...changes }
+      uiState: { ...prev.uiState, ...changes },
     }));
     await updateUIState(changes);
   };
@@ -88,14 +88,16 @@ const TopicMatrixPage = () => {
       <div className="min-h-screen section-gradient-radial flex items-center justify-center">
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           className="w-12 h-12 border-4 border-brand-blue border-t-transparent rounded-full"
         />
       </div>
     );
   }
 
-  const selectedTopic = state.topics.find((t) => t.id === state.uiState.selectedTopicId);
+  const selectedTopic = state.topics.find(
+    (t) => t.id === state.uiState.selectedTopicId
+  );
   const selectedPreferences = state.topicPreferences.find(
     (p) => p.topicId === state.uiState.selectedTopicId
   );
@@ -114,7 +116,9 @@ const TopicMatrixPage = () => {
               <FiGrid className="text-white text-3xl" />
             </div>
             <div>
-              <h1 className="font-cinzel text-4xl font-bold text-text-dark">Topic Matrix</h1>
+              <h1 className="font-cinzel text-4xl font-bold text-text-dark">
+                Topic Matrix
+              </h1>
               <p className="text-text-secondary text-lg">
                 Teach the AI what matters and what to protect you from
               </p>
@@ -146,10 +150,10 @@ const TopicMatrixPage = () => {
             <div
               className="rounded-3xl border border-brand-blue/20 p-6"
               style={{
-                background: 'rgba(255, 255, 255, 0.5)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                boxShadow: '0 8px 32px rgba(65, 105, 225, 0.05)'
+                background: "rgba(255, 255, 255, 0.5)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                boxShadow: "0 8px 32px rgba(65, 105, 225, 0.05)",
               }}
             >
               <TopicMatrixGrid

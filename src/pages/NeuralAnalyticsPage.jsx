@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FiBarChart2, FiFilter, FiRefreshCw } from 'react-icons/fi';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { FiBarChart2, FiFilter, FiRefreshCw } from "react-icons/fi";
 import {
   getNeuralAnalyticsData,
   getTopicTrendData,
   getIntegrityData,
-} from '../services/mockNeuralAnalyticsAPI';
-import KpiCard from '../components/neural-analytics/KpiCard';
-import CognitiveImpactChart from '../components/neural-analytics/CognitiveImpactChart';
-import TopicTrendTimeline from '../components/neural-analytics/TopicTrendTimeline';
-import SessionLogTable from '../components/neural-analytics/SessionLogTable';
-import RadarDietMap from '../components/neural-analytics/RadarDietMap';
-import IntegrityMonitor from '../components/neural-analytics/IntegrityMonitor';
-import SourceDiversityDonut from '../components/neural-analytics/SourceDiversityDonut';
-import InsightsCard from '../components/neural-analytics/InsightsCard';
+} from "../services/neuralAnalyticsAPI";
+import KpiCard from "../components/neural-analytics/KpiCard";
+import CognitiveImpactChart from "../components/neural-analytics/CognitiveImpactChart";
+import TopicTrendTimeline from "../components/neural-analytics/TopicTrendTimeline";
+import SessionLogTable from "../components/neural-analytics/SessionLogTable";
+import RadarDietMap from "../components/neural-analytics/RadarDietMap";
+import IntegrityMonitor from "../components/neural-analytics/IntegrityMonitor";
+import SourceDiversityDonut from "../components/neural-analytics/SourceDiversityDonut";
+import InsightsCard from "../components/neural-analytics/InsightsCard";
 
 const NeuralAnalyticsPage = () => {
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,7 @@ const NeuralAnalyticsPage = () => {
   const [topicTrendData, setTopicTrendData] = useState([]);
   const [integrityData, setIntegrityData] = useState(null);
   const [filters, setFilters] = useState({
-    timeRange: 'LAST_7_DAYS',
+    timeRange: "LAST_7_DAYS",
     deviceFilter: [],
     topicFilterId: null,
   });
@@ -44,7 +44,7 @@ const NeuralAnalyticsPage = () => {
       setTopicTrendData(topicTrend);
       setIntegrityData(integrity);
     } catch (error) {
-      console.error('Failed to load analytics data:', error);
+      console.error("Failed to load analytics data:", error);
     } finally {
       setLoading(false);
     }
@@ -117,7 +117,7 @@ const NeuralAnalyticsPage = () => {
             <motion.div
               className="glassmorphism rounded-2xl p-6 border border-brand-blue/20"
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
+              animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -128,17 +128,17 @@ const NeuralAnalyticsPage = () => {
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {[
-                      { label: 'Last 7 days', value: 'LAST_7_DAYS' },
-                      { label: 'Last 30 days', value: 'LAST_30_DAYS' },
-                      { label: 'Last 90 days', value: 'LAST_90_DAYS' },
+                      { label: "Last 7 days", value: "LAST_7_DAYS" },
+                      { label: "Last 30 days", value: "LAST_30_DAYS" },
+                      { label: "Last 90 days", value: "LAST_90_DAYS" },
                     ].map((option) => (
                       <button
                         key={option.value}
                         onClick={() => handleTimeRangeChange(option.value)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           filters.timeRange === option.value
-                            ? 'bg-brand-blue text-white'
-                            : 'bg-white/50 text-text-dark hover:bg-white/80'
+                            ? "bg-brand-blue text-white"
+                            : "bg-white/50 text-text-dark hover:bg-white/80"
                         }`}
                       >
                         {option.label}
@@ -153,14 +153,14 @@ const NeuralAnalyticsPage = () => {
                     Devices
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {['MOBILE', 'DESKTOP', 'TABLET'].map((device) => (
+                    {["MOBILE", "DESKTOP", "TABLET"].map((device) => (
                       <button
                         key={device}
                         onClick={() => handleDeviceFilterToggle(device)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           filters.deviceFilter.includes(device)
-                            ? 'bg-brand-blue text-white'
-                            : 'bg-white/50 text-text-dark hover:bg-white/80'
+                            ? "bg-brand-blue text-white"
+                            : "bg-white/50 text-text-dark hover:bg-white/80"
                         }`}
                       >
                         {device.charAt(0) + device.slice(1).toLowerCase()}

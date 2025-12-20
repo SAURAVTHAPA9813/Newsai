@@ -1,20 +1,20 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FiShield, FiZap, FiActivity } from 'react-icons/fi';
-import VerificationInputArea from '../components/verify/VerificationInputArea';
-import TruthDialGauge from '../components/verify/TruthDialGauge';
-import VerifyTabNavigation from '../components/verify/VerifyTabNavigation';
-import SummaryTabContent from '../components/verify/tabs/SummaryTabContent';
-import EvidenceTabContent from '../components/verify/tabs/EvidenceTabContent';
-import BiasTabContent from '../components/verify/tabs/BiasTabContent';
-import TimelineTabContent from '../components/verify/tabs/TimelineTabContent';
-import RiskTabContent from '../components/verify/tabs/RiskTabContent';
-import { verifyContent, getModelStatus } from '../services/mockVerifyAPI';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { FiShield, FiZap, FiActivity } from "react-icons/fi";
+import VerificationInputArea from "../components/verify/VerificationInputArea";
+import TruthDialGauge from "../components/verify/TruthDialGauge";
+import VerifyTabNavigation from "../components/verify/VerifyTabNavigation";
+import SummaryTabContent from "../components/verify/tabs/SummaryTabContent";
+import EvidenceTabContent from "../components/verify/tabs/EvidenceTabContent";
+import BiasTabContent from "../components/verify/tabs/BiasTabContent";
+import TimelineTabContent from "../components/verify/tabs/TimelineTabContent";
+import RiskTabContent from "../components/verify/tabs/RiskTabContent";
+import { verifyContent, getModelStatus } from "../services/verifyAPI";
 
 const VerifyHubPage = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResults, setVerificationResults] = useState(null);
-  const [activeTab, setActiveTab] = useState('summary');
+  const [activeTab, setActiveTab] = useState("summary");
   const [modelStatus, setModelStatus] = useState(null);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ const VerifyHubPage = () => {
 
   const handleVerify = async (verificationRequest) => {
     setIsVerifying(true);
-    setActiveTab('summary'); // Reset to summary tab
+    setActiveTab("summary"); // Reset to summary tab
 
     try {
       const result = await verifyContent(
@@ -38,7 +38,7 @@ const VerifyHubPage = () => {
       );
       setVerificationResults(result);
     } catch (error) {
-      console.error('Verification failed:', error);
+      console.error("Verification failed:", error);
     } finally {
       setIsVerifying(false);
     }
@@ -48,16 +48,26 @@ const VerifyHubPage = () => {
     if (!verificationResults) return null;
 
     switch (activeTab) {
-      case 'summary':
-        return <SummaryTabContent summaryData={verificationResults.summaryTab} />;
-      case 'evidence':
-        return <EvidenceTabContent evidenceData={verificationResults.evidenceTab} />;
-      case 'bias':
-        return <BiasTabContent biasData={verificationResults.biasSentimentTab} />;
-      case 'timeline':
-        return <TimelineTabContent timelineData={verificationResults.timelineTab} />;
-      case 'risk':
-        return <RiskTabContent riskData={verificationResults.riskGuidanceTab} />;
+      case "summary":
+        return (
+          <SummaryTabContent summaryData={verificationResults.summaryTab} />
+        );
+      case "evidence":
+        return (
+          <EvidenceTabContent evidenceData={verificationResults.evidenceTab} />
+        );
+      case "bias":
+        return (
+          <BiasTabContent biasData={verificationResults.biasSentimentTab} />
+        );
+      case "timeline":
+        return (
+          <TimelineTabContent timelineData={verificationResults.timelineTab} />
+        );
+      case "risk":
+        return (
+          <RiskTabContent riskData={verificationResults.riskGuidanceTab} />
+        );
       default:
         return null;
     }
@@ -72,9 +82,9 @@ const VerifyHubPage = () => {
           animate={{ opacity: 1, y: 0 }}
           className="border-b border-brand-blue/10"
           style={{
-            background: 'rgba(255, 255, 255, 0.7)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)'
+            background: "rgba(255, 255, 255, 0.7)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
           }}
         >
           <div className="container-custom py-3">
@@ -90,10 +100,16 @@ const VerifyHubPage = () => {
                   </span>
                 </div>
                 <div className="text-text-secondary">
-                  Reliability: <span className="font-semibold text-text-dark">{modelStatus.reliability}%</span>
+                  Reliability:{" "}
+                  <span className="font-semibold text-text-dark">
+                    {modelStatus.reliability}%
+                  </span>
                 </div>
                 <div className="text-text-secondary">
-                  Avg Latency: <span className="font-semibold text-text-dark">{modelStatus.averageLatency}s</span>
+                  Avg Latency:{" "}
+                  <span className="font-semibold text-text-dark">
+                    {modelStatus.averageLatency}s
+                  </span>
                 </div>
               </div>
               <div className="text-text-secondary">
@@ -136,10 +152,10 @@ const VerifyHubPage = () => {
             transition={{ delay: 0.2 }}
             className="rounded-3xl border border-brand-blue/20 p-6"
             style={{
-              background: 'rgba(255, 255, 255, 0.7)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              boxShadow: '0 8px 32px rgba(65, 105, 225, 0.1)'
+              background: "rgba(255, 255, 255, 0.7)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              boxShadow: "0 8px 32px rgba(65, 105, 225, 0.1)",
             }}
           >
             <div className="mb-4 flex items-center gap-2">
@@ -163,10 +179,10 @@ const VerifyHubPage = () => {
                 transition={{ delay: 0.3 }}
                 className="rounded-3xl border border-brand-blue/20 p-12 text-center"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.7)',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                  boxShadow: '0 8px 32px rgba(65, 105, 225, 0.1)'
+                  background: "rgba(255, 255, 255, 0.7)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  boxShadow: "0 8px 32px rgba(65, 105, 225, 0.1)",
                 }}
               >
                 <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-brand-blue/20 to-blue-300/20 rounded-full flex items-center justify-center">
@@ -176,8 +192,9 @@ const VerifyHubPage = () => {
                   Ready for Analysis
                 </h3>
                 <p className="text-text-secondary text-base leading-relaxed max-w-md mx-auto">
-                  Enter a claim, headline, tweet, or URL in the input area to begin forensic verification.
-                  The AI will analyze credibility, sources, bias, and provide a comprehensive truth assessment.
+                  Enter a claim, headline, tweet, or URL in the input area to
+                  begin forensic verification. The AI will analyze credibility,
+                  sources, bias, and provide a comprehensive truth assessment.
                 </p>
               </motion.div>
             ) : (
@@ -197,8 +214,12 @@ const VerifyHubPage = () => {
                     <TruthDialGauge
                       score={verificationResults.truthDial.score}
                       verdictLabel={verificationResults.truthDial.verdictLabel}
-                      verdictLabelHuman={verificationResults.truthDial.verdictLabelHuman}
-                      verdictSummary={verificationResults.truthDial.verdictSummary}
+                      verdictLabelHuman={
+                        verificationResults.truthDial.verdictLabelHuman
+                      }
+                      verdictSummary={
+                        verificationResults.truthDial.verdictSummary
+                      }
                       scoreColor={verificationResults.truthDial.scoreColor}
                     />
                   </motion.div>
@@ -211,14 +232,18 @@ const VerifyHubPage = () => {
                     animate={{ opacity: 1 }}
                     className="rounded-3xl border border-brand-blue/20 p-12 text-center"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.8)',
-                      backdropFilter: 'blur(20px)',
-                      WebkitBackdropFilter: 'blur(20px)'
+                      background: "rgba(255, 255, 255, 0.8)",
+                      backdropFilter: "blur(20px)",
+                      WebkitBackdropFilter: "blur(20px)",
                     }}
                   >
                     <motion.div
                       animate={{ rotate: 360 }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
                       className="w-16 h-16 mx-auto mb-4"
                     >
                       <FiZap className="w-full h-full text-brand-blue" />
@@ -237,19 +262,17 @@ const VerifyHubPage = () => {
                     transition={{ delay: 0.5 }}
                     className="rounded-3xl border border-brand-blue/20 overflow-hidden"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.8)',
-                      backdropFilter: 'blur(20px)',
-                      WebkitBackdropFilter: 'blur(20px)',
-                      boxShadow: '0 8px 32px rgba(65, 105, 225, 0.1)'
+                      background: "rgba(255, 255, 255, 0.8)",
+                      backdropFilter: "blur(20px)",
+                      WebkitBackdropFilter: "blur(20px)",
+                      boxShadow: "0 8px 32px rgba(65, 105, 225, 0.1)",
                     }}
                   >
                     <VerifyTabNavigation
                       activeTab={activeTab}
                       onTabChange={setActiveTab}
                     />
-                    <div className="min-h-[300px]">
-                      {renderTabContent()}
-                    </div>
+                    <div className="min-h-[300px]">{renderTabContent()}</div>
                   </motion.div>
                 )}
               </motion.div>
