@@ -64,11 +64,11 @@ const UserProfilePage = () => {
   return (
     <div className="min-h-screen bg-page-bg pt-20">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-brand-blue/10 to-purple-100 py-16">
+      <section className="relative bg-gradient-to-br from-brand-blue/10 to-sky-100 py-16">
         <div className="container-custom">
           <div className="flex items-center gap-6">
             {/* Profile Avatar */}
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-brand-blue to-purple-500 flex items-center justify-center text-white text-3xl font-bold shadow-xl">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-brand-blue to-sky-500 flex items-center justify-center text-white text-3xl font-bold shadow-xl">
               {user.name.charAt(0)}
             </div>
 
@@ -187,7 +187,7 @@ const UserProfilePage = () => {
                     {user.preferences.topics.map((topic, index) => (
                       <span
                         key={index}
-                        className="px-4 py-2 bg-purple-100 text-purple-600 rounded-full text-sm font-semibold"
+                        className="px-4 py-2 bg-sky-100 text-sky-600 rounded-full text-sm font-semibold"
                       >
                         {topic}
                       </span>

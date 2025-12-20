@@ -111,48 +111,58 @@ const LoginPage = () => {
     }
   }, [])
 
-  const handleSignIn = (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault()
 
-    // For now, simulate login (will integrate with backend API later)
-    const userData = {
-      name: signInData.email.split('@')[0],
-      email: signInData.email,
-      joinedDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-      savedArticlesCount: 0,
-      preferences: {
-        categories: [],
-        topics: []
-      }
-    }
-
-    const fakeToken = 'fake-jwt-token-' + Date.now()
-    login(userData, fakeToken)
-    navigate('/dashboard')
-  }
-
-  const handleSignUp = (e) => {
-    e.preventDefault()
-    if (signUpData.password !== signUpData.confirmPassword) {
-      alert('Passwords do not match!')
+    if (!signInData.email || !signInData.password) {
+      alert('Please fill in all fields')
       return
     }
 
-    // For now, simulate signup (will integrate with backend API later)
-    const userData = {
-      name: signUpData.name,
-      email: signUpData.email,
-      joinedDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-      savedArticlesCount: 0,
-      preferences: {
-        categories: [],
-        topics: []
+    try {
+      const result = await login(signInData.email, signInData.password)
+
+      if (result.success) {
+        // Navigation handled by useEffect on line 13-17
+        console.log('Login successful:', result.user)
+      } else {
+        alert(result.error || 'Login failed. Please check your credentials.')
       }
+    } catch (error) {
+      alert('Login failed. Please try again.')
+    }
+  }
+
+  const handleSignUp = async (e) => {
+    e.preventDefault()
+
+    if (!signUpData.name || !signUpData.email || !signUpData.password || !signUpData.confirmPassword) {
+      alert('Please fill in all fields')
+      return
     }
 
-    const fakeToken = 'fake-jwt-token-' + Date.now()
-    signup(userData, fakeToken)
-    navigate('/dashboard')
+    if (signUpData.password !== signUpData.confirmPassword) {
+      alert('Passwords do not match')
+      return
+    }
+
+    if (signUpData.password.length < 6) {
+      alert('Password must be at least 6 characters')
+      return
+    }
+
+    try {
+      const result = await signup(signUpData.name, signUpData.email, signUpData.password)
+
+      if (result.success) {
+        console.log('Signup successful:', result.user)
+        // Navigation handled by useEffect
+      } else {
+        alert(result.error || 'Signup failed. Please try again.')
+      }
+    } catch (error) {
+      alert('Signup failed. Please try again.')
+    }
   }
 
   return (

@@ -146,7 +146,7 @@ const RiskTabContent = ({ riskData }) => {
               >
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 mt-1">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-blue/20 to-purple-600/20 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-blue/20 to-sky-500/20 flex items-center justify-center">
                       <CategoryIcon className="w-5 h-5 text-brand-blue" />
                     </div>
                   </div>

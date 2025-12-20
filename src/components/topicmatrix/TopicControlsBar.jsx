@@ -96,7 +96,7 @@ const TopicControlsBar = ({ uiState, onUIStateChange }) => {
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-blue to-purple-600 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-blue to-sky-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all"
       >
         <FiPlus className="w-4 h-4" />
         New Topic

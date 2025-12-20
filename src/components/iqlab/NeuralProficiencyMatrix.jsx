@@ -5,7 +5,7 @@ import { BiAnalyse } from 'react-icons/bi';
 const NeuralProficiencyMatrix = ({ skillScores }) => {
   const skillLabels = {
     factVerification: { icon: FiShield, label: 'Fact Verification', color: 'from-blue-500 to-blue-600' },
-    biasDetection: { icon: BiAnalyse, label: 'Bias Detection', color: 'from-purple-500 to-purple-600' },
+    biasDetection: { icon: BiAnalyse, label: 'Bias Detection', color: 'from-sky-500 to-sky-600' },
     marketAnalysis: { icon: FiTrendingUp, label: 'Market Analysis', color: 'from-green-500 to-green-600' },
     geopolitics: { icon: FiGlobe, label: 'Geopolitics', color: 'from-amber-500 to-amber-600' }
   };
@@ -76,8 +76,8 @@ const NeuralProficiencyMatrix = ({ skillScores }) => {
         })}
       </div>
 
-      <div className="mt-6 p-3 rounded-lg bg-purple-50/80 border border-purple-300">
-        <p className="text-xs text-purple-900 leading-relaxed">
+      <div className="mt-6 p-3 rounded-lg bg-sky-50/80 border border-sky-300">
+        <p className="text-xs text-sky-900 leading-relaxed">
           Skills improve through daily drills, fact-checking in Verify Hub, and engaging with relevant content.
         </p>
       </div>

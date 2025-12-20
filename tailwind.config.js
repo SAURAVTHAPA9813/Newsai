@@ -43,7 +43,7 @@ export default {
         // Neon colors for motion graphics
         'neon-cyan': '#00F0FF',
         'neon-teal': '#00FFD1',
-        'neon-purple': '#B026FF',
+        'neon-purple': '#5B8DEF',
         'neon-yellow': '#FFE500',
         'neon-pink': '#FF006E',
         'electric-blue': '#0080FF',
@@ -211,14 +211,14 @@ export default {
 
         // Icon Box Gradients (UseCases style)
         'icon-blue-cyan': 'linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%)',
-        'icon-purple-pink': 'linear-gradient(135deg, #A855F7 0%, #EC4899 100%)',
+        'icon-purple-pink': 'linear-gradient(135deg, #5B8DEF 0%, #EC4899 100%)',
         'icon-green-emerald': 'linear-gradient(135deg, #22C55E 0%, #10B981 100%)',
         'icon-orange-red': 'linear-gradient(135deg, #F97316 0%, #EF4444 100%)',
         'icon-brand-blue': 'linear-gradient(135deg, #4169E1 0%, #2563EB 100%)',
 
         // StockSection - Three Gradients
         'stock-blue': 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
-        'stock-purple': 'linear-gradient(135deg, #A855F7 0%, #9333EA 100%)',
+        'stock-purple': 'linear-gradient(135deg, #5B8DEF 0%, #3B82F6 100%)',
         'stock-green': 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
       },
     },

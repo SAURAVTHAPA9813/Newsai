@@ -14,7 +14,7 @@ import {
   FiSettings
 } from 'react-icons/fi';
 
-const PersonalizationStrip = ({ onPreferencesChange }) => {
+const PersonalizationStrip = ({ onPreferencesChange, activeInterest, onInterestClick }) => {
   const [selectedIndustries, setSelectedIndustries] = useState(['Tech', 'Finance']);
   const [location, setLocation] = useState('New York, NY');
   const [isEditingLocation, setIsEditingLocation] = useState(false);
@@ -29,11 +29,21 @@ const PersonalizationStrip = ({ onPreferencesChange }) => {
   // Available industry options
   const industryOptions = [
     { id: 'finance', label: 'Finance', icon: FiBriefcase, color: 'from-blue-500 to-blue-600' },
-    { id: 'tech', label: 'Tech', icon: FiCpu, color: 'from-purple-500 to-purple-600' },
+    { id: 'tech', label: 'Tech', icon: FiCpu, color: 'from-sky-500 to-sky-600' },
     { id: 'healthcare', label: 'Healthcare', icon: FiActivity, color: 'from-green-500 to-green-600' },
     { id: 'markets', label: 'Markets', icon: FiTrendingUp, color: 'from-orange-500 to-orange-600' },
     { id: 'global', label: 'Global', icon: FiGlobe, color: 'from-pink-500 to-pink-600' }
   ];
+
+  const handleIndustryClick = (industryLabel) => {
+    // If onInterestClick is provided (for filtering), use it
+    if (onInterestClick) {
+      onInterestClick(industryLabel);
+    } else {
+      // Otherwise, use the original toggle behavior for multi-select
+      toggleIndustry(industryLabel);
+    }
+  };
 
   const toggleIndustry = (industryLabel) => {
     setSelectedIndustries((prev) => {
@@ -94,23 +104,29 @@ const PersonalizationStrip = ({ onPreferencesChange }) => {
             <div className="flex flex-wrap items-center gap-2">
               {industryOptions.map((industry) => {
                 const IndustryIcon = industry.icon;
+                const isActive = activeInterest === industry.label;
                 const isSelected = selectedIndustries.includes(industry.label);
 
                 return (
                   <motion.button
                     key={industry.id}
-                    onClick={() => toggleIndustry(industry.label)}
+                    onClick={() => handleIndustryClick(industry.label)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                      isSelected
-                        ? `text-white shadow-lg bg-gradient-to-r ${industry.color}`
-                        : 'bg-white/60 text-text-secondary border border-brand-blue/20 hover:border-brand-blue/50'
+                      isActive
+                        ? `text-white shadow-xl bg-gradient-to-r ${industry.color} ring-4 ring-${industry.color.split('-')[1]}-300/50`
+                        : 'bg-white/60 text-text-secondary border border-brand-blue/20 hover:border-brand-blue/50 hover:shadow-md'
                     }`}
                   >
                     <IndustryIcon className="w-4 h-4" />
                     <span>{industry.label}</span>
-                    {isSelected && <FiCheck className="w-3 h-3" />}
+                    {isActive && (
+                      <>
+                        <FiCheck className="w-3 h-3" />
+                        <span className="text-[10px] opacity-90">(Active)</span>
+                      </>
+                    )}
                   </motion.button>
                 );
               })}
@@ -186,7 +202,7 @@ const PersonalizationStrip = ({ onPreferencesChange }) => {
             onClick={() => setShowTeachAI(!showTeachAI)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-blue to-purple-600 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-blue to-sky-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all"
           >
             <FiSettings className="w-4 h-4" />
             <span>Teach AI</span>
@@ -244,7 +260,7 @@ const PersonalizationStrip = ({ onPreferencesChange }) => {
                         onClick={() => handleAIPreferenceChange('readingLevel', level.toLowerCase())}
                         className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           aiPreferences.readingLevel === level.toLowerCase()
-                            ? 'bg-gradient-to-r from-brand-blue to-purple-600 text-white shadow-md'
+                            ? 'bg-gradient-to-r from-brand-blue to-sky-500 text-white shadow-md'
                             : 'bg-white/60 text-text-secondary border border-brand-blue/20 hover:border-brand-blue/50'
                         }`}
                       >
@@ -266,7 +282,7 @@ const PersonalizationStrip = ({ onPreferencesChange }) => {
                         onClick={() => handleAIPreferenceChange('storyLength', length.toLowerCase())}
                         className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           aiPreferences.storyLength === length.toLowerCase()
-                            ? 'bg-gradient-to-r from-brand-blue to-purple-600 text-white shadow-md'
+                            ? 'bg-gradient-to-r from-brand-blue to-sky-500 text-white shadow-md'
                             : 'bg-white/60 text-text-secondary border border-brand-blue/20 hover:border-brand-blue/50'
                         }`}
                       >
@@ -288,7 +304,7 @@ const PersonalizationStrip = ({ onPreferencesChange }) => {
                         onClick={() => handleAIPreferenceChange('tonePreference', tone.toLowerCase())}
                         className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           aiPreferences.tonePreference === tone.toLowerCase()
-                            ? 'bg-gradient-to-r from-brand-blue to-purple-600 text-white shadow-md'
+                            ? 'bg-gradient-to-r from-brand-blue to-sky-500 text-white shadow-md'
                             : 'bg-white/60 text-text-secondary border border-brand-blue/20 hover:border-brand-blue/50'
                         }`}
                       >

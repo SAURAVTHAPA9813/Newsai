@@ -1,22 +1,36 @@
 import { useState, useEffect } from 'react';
 import { FiX, FiLoader, FiZap } from 'react-icons/fi';
-import mockDashboardAPI from '../../services/mockDashboardAPI';
+import aiAPI from '../../services/aiAPI';
 
-const ExplainModule = ({ articleId, onClose }) => {
+const ExplainModule = ({ article, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadExplanation();
-  }, [articleId]);
+    if (article) {
+      loadExplanation();
+    }
+  }, [article]);
 
   const loadExplanation = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const result = await mockDashboardAPI.explainArticle(articleId);
-      setData(result);
+      const result = await aiAPI.explainArticle({
+        title: article.title,
+        description: article.summary?.['15m'] || article.description,
+        content: article.summary?.['30m'] || article.content,
+      });
+
+      if (result.success) {
+        setData(result.data);
+      } else {
+        setError('Failed to generate explanation');
+      }
     } catch (error) {
       console.error('Error loading explanation:', error);
+      setError(error.message || 'Failed to load explanation');
     } finally {
       setLoading(false);
     }

@@ -26,14 +26,14 @@ const CommandPalette = ({ isOpen, onClose, onCommandExecute }) => {
       label: 'Summarize top 5 stories',
       description: 'Get a quick overview of today\'s most important news',
       color: 'from-blue-500 to-blue-600',
-      shortcut: '⌘1'
+      shortcut: '⌘'
     },
     {
       id: 'what-changed',
       icon: FiClock,
       label: 'What changed since yesterday?',
       description: 'See key developments and new stories from the past 24h',
-      color: 'from-purple-500 to-purple-600',
+      color: 'from-sky-500 to-sky-600',
       shortcut: '⌘2'
     },
     {
@@ -76,7 +76,7 @@ const CommandPalette = ({ isOpen, onClose, onCommandExecute }) => {
         icon: FiZap,
         text: `AI Analysis: ${query}`,
         subtext: 'Get instant AI insights about this topic',
-        color: 'from-brand-blue to-purple-600'
+        color: 'from-brand-blue to-sky-500'
       },
       {
         type: 'search',
@@ -206,7 +206,7 @@ const CommandPalette = ({ isOpen, onClose, onCommandExecute }) => {
               {/* Header with Search */}
               <div className="p-6 border-b border-brand-blue/10">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-brand-blue to-purple-600">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-brand-blue to-sky-500">
                     <FiCommand className="w-5 h-5 text-white" />
                   </div>
                   <h2 className="text-lg font-bold text-text-dark">AI Command Center</h2>
@@ -263,7 +263,7 @@ const CommandPalette = ({ isOpen, onClose, onCommandExecute }) => {
                         whileHover={{ x: 4 }}
                         className={`w-full p-4 rounded-xl text-left transition-all ${
                           isSelected
-                            ? 'bg-gradient-to-r from-brand-blue/10 to-purple-500/10 border-2 border-brand-blue/30'
+                            ? 'bg-gradient-to-r from-brand-blue/10 to-sky-500/10 border-2 border-brand-blue/30'
                             : 'bg-white/40 border-2 border-transparent hover:border-brand-blue/20'
                         }`}
                       >
@@ -307,7 +307,7 @@ const CommandPalette = ({ isOpen, onClose, onCommandExecute }) => {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-brand-blue/10 bg-gradient-to-r from-blue-50 to-purple-50">
+              <div className="px-6 py-4 border-t border-brand-blue/10 bg-gradient-to-r from-blue-50 to-sky-50">
                 <div className="flex items-center justify-between text-xs text-text-secondary">
                   <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1">

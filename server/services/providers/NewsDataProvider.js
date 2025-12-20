@@ -1,13 +1,13 @@
 /**
  * NewsData.io API Provider
- * Implementation of NewsData.io API integration
+ * Implementation of NewsData.io API integration with multi-key category support
  */
 
 const axios = require('axios');
-const BaseNewsProvider = require('./BaseNewsProvider');
+const MultiKeyProvider = require('./MultiKeyProvider');
 const { getProviderConfig } = require('../../config/providers');
 
-class NewsDataProvider extends BaseNewsProvider {
+class NewsDataProvider extends MultiKeyProvider {
   constructor() {
     const config = getProviderConfig('newsdata');
 
@@ -15,18 +15,20 @@ class NewsDataProvider extends BaseNewsProvider {
       throw new Error('NewsData configuration not found');
     }
 
-    // Get API key from config or environment
+    // Get API key from config or environment (fallback single key)
     config.apiKey = config.apiKey || process.env.NEWSDATA_API_KEY;
 
-    if (!config.apiKey) {
-      throw new Error('NEWSDATA_API_KEY environment variable is required');
-    }
-
+    // MultiKeyProvider will also check for category-specific keys
+    // Format: NEWSDATA_PRIMARY_TECH, NEWSDATA_PRIMARY_FINANCE, etc.
     super(config);
 
     // NewsData specific settings
     this.defaultCountry = 'us';
     this.defaultLanguage = 'en';
+
+    // Log available keys
+    const keyCount = Object.keys(this.categoryKeyMap).length;
+    console.log(`✅ ${this.displayName} initialized with ${keyCount} category-specific API key groups`);
   }
 
   /**
@@ -34,17 +36,25 @@ class NewsDataProvider extends BaseNewsProvider {
    * @param {object} params - Query parameters
    * @param {number} params.page - Page number (default: 1)
    * @param {number} params.pageSize - Articles per page (default: 20)
+   * @param {string} params.category - Optional category for key selection
    * @returns {Promise<Array>} - Array of normalized articles
    */
   async fetchHeadlines(params = {}) {
-    const { page = 1, pageSize = 20 } = params;
+    const { page = 1, pageSize = 20, category = 'general' } = params;
 
     try {
       console.log(`🔍 Fetching headlines from ${this.displayName} (page ${page})`);
 
+      // Get category-aware API key
+      const keyInfo = this.checkRateLimitForCategory(category);
+
+      if (!keyInfo) {
+        throw new Error(`No available API keys for category "${category}"`);
+      }
+
       // NewsData uses pagination with 'page' parameter
       const requestParams = {
-        apikey: this.apiKey,
+        apikey: keyInfo.key,
         country: this.defaultCountry,
         language: this.defaultLanguage
       };
@@ -63,19 +73,22 @@ class NewsDataProvider extends BaseNewsProvider {
         throw new Error('Invalid response format from NewsData API');
       }
 
+      // Increment counter for this specific key
+      this.incrementKeyCount(keyInfo.key);
+
       // Normalize articles
       const normalized = response.data.results
         .slice(0, pageSize) // Limit to requested page size
         .map(article => this.normalizeArticle(article));
 
-      console.log(`✅ ${this.displayName} returned ${normalized.length} headlines`);
+      console.log(`✅ ${this.displayName} [${keyInfo.tier}/${keyInfo.category}] returned ${normalized.length} headlines`);
 
       return normalized;
     } catch (error) {
       console.error(`❌ ${this.displayName} fetchHeadlines error:`, error.response?.data || error.message);
 
       if (error.response?.status === 429) {
-        throw new Error(`Rate limit exceeded for ${this.displayName}`);
+        throw new Error(`Rate limit exceeded for ${this.displayName} - will fallback to cache`);
       }
 
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -103,8 +116,15 @@ class NewsDataProvider extends BaseNewsProvider {
     try {
       console.log(`🔍 Fetching ${category} (${newsdataCategory}) from ${this.displayName}`);
 
+      // Get category-specific API key
+      const keyInfo = this.checkRateLimitForCategory(category);
+
+      if (!keyInfo) {
+        throw new Error(`No available API keys for category "${category}"`);
+      }
+
       const requestParams = {
-        apikey: this.apiKey,
+        apikey: keyInfo.key,
         country: this.defaultCountry,
         language: this.defaultLanguage,
         category: newsdataCategory
@@ -123,19 +143,22 @@ class NewsDataProvider extends BaseNewsProvider {
         throw new Error('Invalid response format from NewsData API');
       }
 
+      // Increment counter for this specific key
+      this.incrementKeyCount(keyInfo.key);
+
       // Normalize articles and add category
       const normalized = response.data.results
         .slice(0, pageSize)
         .map(article => this.normalizeArticle({ ...article, category }));
 
-      console.log(`✅ ${this.displayName} returned ${normalized.length} ${category} articles`);
+      console.log(`✅ ${this.displayName} [${keyInfo.tier}/${keyInfo.category}] returned ${normalized.length} ${category} articles`);
 
       return normalized;
     } catch (error) {
       console.error(`❌ ${this.displayName} fetchByCategory error:`, error.response?.data || error.message);
 
       if (error.response?.status === 429) {
-        throw new Error(`Rate limit exceeded for ${this.displayName}`);
+        throw new Error(`Rate limit exceeded for ${this.displayName} - will fallback to cache`);
       }
 
       throw new Error(`${this.displayName} request failed: ${error.message}`);

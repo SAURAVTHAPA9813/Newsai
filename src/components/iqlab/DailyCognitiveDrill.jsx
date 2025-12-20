@@ -64,7 +64,7 @@ const DailyCognitiveDrill = ({ question, attempts, onSubmit, onPractice }) => {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3">
-          <FiCpu className="w-5 h-5 text-purple-600" />
+          <FiCpu className="w-5 h-5 text-sky-600" />
           <h2 className="text-lg font-bold text-text-dark uppercase tracking-wider">
             Daily Cognitive Drill
           </h2>
@@ -150,7 +150,7 @@ const DailyCognitiveDrill = ({ question, attempts, onSubmit, onPractice }) => {
             whileTap={selectedIndex !== null ? { scale: 0.98 } : {}}
             className={`flex-1 px-6 py-4 rounded-xl font-bold text-base uppercase tracking-wider transition-all ${
               selectedIndex !== null
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg hover:shadow-xl'
+                ? 'bg-gradient-to-r from-sky-500 to-pink-500 text-white shadow-lg hover:shadow-xl'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
@@ -224,7 +224,7 @@ const DailyCognitiveDrill = ({ question, attempts, onSubmit, onPractice }) => {
             onClick={handlePractice}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-purple-700 border border-purple-300 hover:border-purple-500 transition-all"
+            className="px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-sky-500/10 to-pink-500/10 text-sky-700 border border-sky-300 hover:border-sky-500 transition-all"
           >
             Try Another Question
           </motion.button>

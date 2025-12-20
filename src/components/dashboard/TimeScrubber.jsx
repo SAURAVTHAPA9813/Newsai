@@ -76,7 +76,7 @@ const TimeScrubber = ({ value = '15m', onChange, stats = {} }) => {
         <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
           {/* Active Track Gradient */}
           <motion.div
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-brand-blue to-purple-500 rounded-full"
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-brand-blue to-sky-500 rounded-full"
             initial={false}
             animate={{
               width: `${((presetIndex + 1) / presets.length) * 100}%`
@@ -121,7 +121,7 @@ const TimeScrubber = ({ value = '15m', onChange, stats = {} }) => {
           }}
         >
           <motion.div
-            className="w-full h-full rounded-full bg-gradient-to-r from-brand-blue to-purple-600 opacity-30 blur-md"
+            className="w-full h-full rounded-full bg-gradient-to-r from-brand-blue to-sky-500 opacity-30 blur-md"
             animate={{
               scale: [1, 1.2, 1],
               opacity: [0.3, 0.5, 0.3]
@@ -131,7 +131,7 @@ const TimeScrubber = ({ value = '15m', onChange, stats = {} }) => {
               repeat: Infinity
             }}
           />
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-brand-blue to-purple-600 shadow-lg flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-brand-blue to-sky-500 shadow-lg flex items-center justify-center">
             <FiClock className="w-4 h-4 text-white" />
           </div>
         </motion.div>
@@ -155,7 +155,7 @@ const TimeScrubber = ({ value = '15m', onChange, stats = {} }) => {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-brand-blue/10"
+        className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-50 to-sky-50 border border-brand-blue/10"
       >
         <div className="flex items-start gap-3">
           <div className="p-2 rounded-lg bg-brand-blue/10">

@@ -32,7 +32,7 @@ const TimelineTabContent = ({ timelineData }) => {
       {/* Timeline */}
       <div className="relative">
         {/* Vertical Line */}
-        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-brand-blue via-purple-400 to-brand-blue/20" />
+        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-brand-blue via-sky-400 to-brand-blue/20" />
 
         {/* Timeline Events */}
         <div className="space-y-6">
@@ -59,7 +59,7 @@ const TimelineTabContent = ({ timelineData }) => {
                       isFirst
                         ? 'bg-gradient-to-br from-green-500 to-green-600'
                         : isLast
-                        ? 'bg-gradient-to-br from-brand-blue to-purple-600'
+                        ? 'bg-gradient-to-br from-brand-blue to-sky-500'
                         : 'bg-gradient-to-br from-blue-400 to-blue-500'
                     } shadow-lg`}
                   >

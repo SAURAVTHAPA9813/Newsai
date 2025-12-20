@@ -203,7 +203,7 @@ const ProductPreview = () => {
                   className="bg-white/80 rounded-xl p-4 shadow-md"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
+                    <span className="px-2 py-1 bg-sky-100 text-sky-700 text-xs font-semibold rounded">
                       World News
                     </span>
                     <span className="text-xs text-text-secondary">18 min ago</span>

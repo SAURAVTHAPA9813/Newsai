@@ -1,22 +1,36 @@
 import { useState, useEffect } from 'react';
 import { FiX, FiLoader, FiDollarSign, FiTrendingUp, FiTrendingDown, FiMinus } from 'react-icons/fi';
-import mockDashboardAPI from '../../services/mockDashboardAPI';
+import aiAPI from '../../services/aiAPI';
 
-const MarketImpactModule = ({ articleId, onClose }) => {
+const MarketImpactModule = ({ article, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadMarketImpact();
-  }, [articleId]);
+    if (article) {
+      loadMarketImpact();
+    }
+  }, [article]);
 
   const loadMarketImpact = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const result = await mockDashboardAPI.getMarketImpact(articleId);
-      setData(result);
+      const result = await aiAPI.getMarketImpact({
+        title: article.title,
+        description: article.summary?.['15m'] || article.description,
+        category: article.category,
+      });
+
+      if (result.success) {
+        setData(result.data);
+      } else {
+        setError('Failed to analyze market impact');
+      }
     } catch (error) {
       console.error('Error loading market impact:', error);
+      setError(error.message || 'Failed to load market impact');
     } finally {
       setLoading(false);
     }

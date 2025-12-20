@@ -9,7 +9,7 @@ const DecompressMode = ({ onClose }) => {
 
   const phases = {
     breatheIn: { duration: 4, label: 'Breathe In', color: 'from-cyan-500 to-blue-500' },
-    hold: { duration: 4, label: 'Hold', color: 'from-purple-500 to-pink-500' },
+    hold: { duration: 4, label: 'Hold', color: 'from-sky-500 to-pink-500' },
     breatheOut: { duration: 4, label: 'Breathe Out', color: 'from-green-500 to-emerald-500' }
   };
 

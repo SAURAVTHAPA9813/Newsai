@@ -3,6 +3,8 @@
  * Analyzes news articles to extract trending topics and their momentum
  */
 
+const marketDataService = require('./marketDataService');
+
 // Common stop words to filter out
 const STOP_WORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
@@ -176,38 +178,18 @@ exports.extractKeywordPhrases = (articles, topN = 8) => {
 };
 
 /**
- * Get market data (placeholder for now - can integrate real APIs later)
- * @returns {Object} Market data for major indices
+ * Get market data from real-time API (Finnhub)
+ * @returns {Promise<Object>} Market data for major indices
  */
-exports.getMarketData = () => {
-  // TODO: Integrate real market data APIs (Alpha Vantage, Finnhub, etc.)
-  // For now, return realistic-looking simulated data
-  const now = new Date();
-  const hour = now.getHours();
-
-  // Market is open 9:30 AM - 4 PM ET (14:30 - 21:00 UTC)
-  const isMarketHours = hour >= 14 && hour < 21;
-
-  // Simulate realistic market movements
-  const sp500Base = 4520;
-  const btcBase = 42000;
-  const vixBase = 15.5;
-
-  return {
-    sp500: {
-      value: sp500Base + Math.round((Math.random() - 0.5) * 100),
-      change: Number(((Math.random() - 0.45) * 2).toFixed(2))
-    },
-    btc: {
-      value: btcBase + Math.round((Math.random() - 0.5) * 2000),
-      change: Number(((Math.random() - 0.4) * 5).toFixed(2))
-    },
-    vix: {
-      value: Number((vixBase + (Math.random() - 0.5) * 3).toFixed(2)),
-      change: Number(((Math.random() - 0.5) * 2).toFixed(2))
-    },
-    isMarketOpen: isMarketHours
-  };
+exports.getMarketData = async () => {
+  try {
+    // Fetch real-time market data from Finnhub API
+    return await marketDataService.getRealTimeMarketData();
+  } catch (error) {
+    console.error('Error fetching market data in trendAnalysisService:', error);
+    // Fallback to simulated data
+    return marketDataService.getFallbackMarketData();
+  }
 };
 
 /**
@@ -234,4 +216,23 @@ exports.analyzeTrends = (articles) => {
     marketData,
     lastUpdated: new Date().toISOString()
   };
+};
+
+/**
+ * Get trending topics (wrapper for analyzeTrends for compatibility)
+ * @returns {Promise<Object>} Trending topics data
+ */
+exports.getTrendingTopics = async () => {
+  try {
+    const newsService = require('./newsService');
+    const articles = await newsService.getHeadlines(1, 50);
+    return exports.analyzeTrends(articles);
+  } catch (error) {
+    console.error('Error getting trending topics:', error);
+    return {
+      trends: [],
+      marketData: {},
+      lastUpdated: new Date().toISOString()
+    };
+  }
 };

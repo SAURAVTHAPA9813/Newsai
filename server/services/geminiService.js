@@ -77,7 +77,7 @@ exports.getMarketImpact = async (article) => {
   try {
     // Using new SDK - see response below
 
-    const prompt = `Analyze the potential market impact of this news article:
+    const prompt = `Analyze the potential market and financial impact of this news article:
 
 Title: ${article.title}
 Description: ${article.description || 'No description'}
@@ -85,28 +85,35 @@ Category: ${article.category || 'general'}
 
 Provide a market impact analysis in the following JSON format:
 {
-  "overallImpact": "HIGH|MEDIUM|LOW",
-  "impactScore": 0-100,
+  "overallRisk": "HIGH|MODERATE|LOW",
+  "riskScore": 0-100,
   "affectedSectors": [
     {
-      "sector": "Sector name",
-      "impact": "HIGH|MEDIUM|LOW",
-      "percentage": 0-100,
-      "description": "Brief explanation"
+      "sector": "Sector name (e.g., Technology, Finance, Healthcare)",
+      "impact": "POSITIVE|NEGATIVE|NEUTRAL",
+      "change": "+2.3% or -1.5% (estimated percentage change)",
+      "reason": "Brief explanation of why this sector is affected"
     }
   ],
-  "keyInsights": [
-    "Key insight 1",
-    "Key insight 2"
+  "stocksToWatch": [
+    {
+      "ticker": "Stock ticker symbol (e.g., AAPL, MSFT, TSLA)",
+      "name": "Company name",
+      "movement": "UP|DOWN",
+      "confidence": 0-100
+    }
   ],
-  "timeframe": "Short-term|Medium-term|Long-term"
+  "investmentRecommendations": [
+    "Actionable recommendation 1 for investors",
+    "Actionable recommendation 2 for investors"
+  ]
 }
 
 Analyze:
-- Which sectors/industries are most affected
-- How strong the impact will be (score and level)
-- Key insights for investors
-- Expected timeframe of impact
+- Overall risk level and score (0-100)
+- Which sectors/industries are most affected (include 2-4 sectors)
+- Specific stocks to watch (include 3-5 stocks with ticker symbols)
+- Investment recommendations (2-3 actionable insights)
 
 Return ONLY valid JSON, no markdown formatting.`;
 
@@ -140,20 +147,35 @@ Provide a balanced perspective analysis in the following JSON format:
 {
   "perspectives": [
     {
-      "viewpoint": "Name of perspective",
-      "stance": "POSITIVE|NEGATIVE|BALANCED",
-      "mainArguments": ["Argument 1", "Argument 2"],
-      "representativeSources": ["Source type 1", "Source type 2"]
+      "viewpoint": "Name of perspective (e.g., Proponents, Critics, Neutral Analysts)",
+      "stance": "Detailed explanation of this viewpoint and their overall position on the issue",
+      "keyArguments": [
+        "Key argument 1 from this perspective",
+        "Key argument 2 from this perspective"
+      ],
+      "sources": [
+        "Type of sources that typically hold this view (e.g., Industry experts, Environmental advocates)",
+        "Another source type"
+      ]
     }
   ],
-  "commonGround": ["Point of agreement 1", "Point of agreement 2"],
-  "openQuestions": ["Question 1", "Question 2"]
+  "consensusAreas": [
+    "Point where different perspectives agree",
+    "Another area of consensus"
+  ],
+  "disagreementAreas": [
+    "Major point of disagreement between perspectives",
+    "Another contentious issue"
+  ]
 }
 
 Include at least 3 perspectives:
-1. Proponents (positive view)
-2. Critics (negative view)
-3. Neutral analysts (balanced view)
+1. Proponents (positive/supportive view)
+2. Critics (negative/opposing view)
+3. Neutral analysts (balanced/cautious view)
+
+For each perspective, provide 2-3 key arguments and representative source types.
+Include 2-3 areas of consensus and 2-3 areas of disagreement.
 
 Return ONLY valid JSON, no markdown formatting.`;
 
@@ -185,20 +207,28 @@ Description: ${article.description || 'No description'}
 
 Provide context analysis in the following JSON format:
 {
-  "summary": "Brief summary of the story's development",
-  "timeline": [
+  "timelineEvents": [
     {
-      "date": "YYYY-MM-DD",
-      "event": "Event description",
-      "importance": "HIGH|MEDIUM|LOW",
-      "description": "Details"
+      "date": "YYYY-MM-DD or TODAY",
+      "event": "Event title",
+      "description": "Detailed description of what happened",
+      "importance": "HIGH|MEDIUM|LOW"
     }
   ],
-  "relatedEvents": ["Related event 1", "Related event 2"],
-  "backgroundInfo": "Additional context and background"
+  "backgroundContext": "Comprehensive paragraph explaining the historical background and how we got to this point",
+  "keyEntities": [
+    {
+      "name": "Person, organization, or entity name",
+      "role": "Their role or position",
+      "relevance": "Why they are important to this story"
+    }
+  ],
+  "relatedTopics": ["Related topic 1", "Related topic 2", "Related topic 3"]
 }
 
 Include 3-5 key timeline events that led to this story.
+Include 2-4 key entities (people, organizations) involved.
+Include 3-5 related topics for further exploration.
 
 Return ONLY valid JSON, no markdown formatting.`;
 

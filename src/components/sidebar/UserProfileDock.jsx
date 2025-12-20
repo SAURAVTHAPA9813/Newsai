@@ -36,7 +36,7 @@ const UserProfileDock = ({ collapsed }) => {
         className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/50 transition-all duration-300 group"
       >
         {/* Avatar */}
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
           {getInitials(user?.name)}
         </div>
 

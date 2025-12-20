@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiSearch, FiTrendingUp, FiClock, FiFilter, FiActivity } from 'react-icons/fi';
-import mockDashboardAPI from '../services/mockDashboardAPI';
+import dashboardAPI from '../services/dashboardAPI';
+import newsAPI from '../services/newsAPI';
+import { useAuth } from '../context/AuthContext';
 import LiveIntelligenceBriefing from '../components/dashboard/LiveIntelligenceBriefing';
 import HolographicArticleCard from '../components/dashboard/HolographicArticleCard';
 import RightPanelWellness from '../components/dashboard/RightPanelWellness';
@@ -14,6 +16,9 @@ import PersonalizationStrip from '../components/dashboard/PersonalizationStrip';
 import CommandPalette from '../components/dashboard/CommandPalette';
 
 const ControlCenterPage = () => {
+  // Auth context
+  const { user } = useAuth();
+
   // State management
   const [readingMode, setReadingMode] = useState('15m');
   const [articles, setArticles] = useState([]);
@@ -23,19 +28,37 @@ const ControlCenterPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMode, setSearchMode] = useState('search');
   const [activeFilter, setActiveFilter] = useState('all');
+  const [activeInterest, setActiveInterest] = useState(null); // Track clicked interest for filtering
   const [calmModeEnabled, setCalmModeEnabled] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
 
-  // User profile (in real app, this comes from AuthContext)
+  // Dashboard data state
+  const [volatility, setVolatility] = useState(50);
+  const [trendingTopics, setTrendingTopics] = useState([]);
+  const [marketData, setMarketData] = useState(null);
+  const [userStats, setUserStats] = useState(null);
+  const [globalVectors, setGlobalVectors] = useState([]);
+  const [allArticles, setAllArticles] = useState([]); // Store all articles before filtering
+
+  // User profile from auth context or defaults
   const userProfile = {
-    industry: 'Software Engineering',
-    region: 'United States'
+    industry: user?.preferences?.industry || 'General',
+    region: user?.preferences?.region || 'Global'
   };
 
   // Load initial data
   useEffect(() => {
     loadDashboardData();
-  }, [readingMode]);
+  }, [activeFilter, activeInterest]); // Reload when filter or interest changes
+
+  // Refilter articles when reading mode changes (without reloading)
+  useEffect(() => {
+    if (allArticles.length > 0) {
+      const limit = getArticleLimitForMode(readingMode);
+      const filteredArticles = allArticles.slice(0, limit);
+      setArticles(filteredArticles);
+    }
+  }, [readingMode, allArticles]);
 
   // Global keyboard shortcut for Command Palette (⌘K or Ctrl+K)
   useEffect(() => {
@@ -50,18 +73,144 @@ const ControlCenterPage = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Helper function to get article limits based on reading mode
+  const getArticleLimitForMode = (mode) => {
+    switch (mode) {
+      case '5m':
+        return 6; // 6 articles × 1 min each = ~6 min reading
+      case '15m':
+        return 12; // 12 articles × 1.5 min each = ~15 min reading
+      case '30m':
+        return 20; // 20 articles × 1.5 min each = ~30 min reading
+      default:
+        return 12;
+    }
+  };
+
+  // Helper function to get summary length based on reading mode
+  const getSummaryForMode = (article, mode) => {
+    const summaries = article.summary;
+    if (typeof summaries === 'object' && summaries !== null) {
+      return summaries[mode] || summaries['15m'] || article.description;
+    }
+    return article.description || article.title;
+  };
+
+  // Helper function to map backend articles to frontend format
+  const mapBackendArticleToFrontend = (article) => {
+    // Create summaries of different lengths
+    const description = article.description || article.title;
+    const content = article.content || description;
+
+    // Split content into sentences for different reading modes
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const shortSummary = sentences.slice(0, 2).join('. ') + '.'; // 2 sentences for 5m
+    const mediumSummary = sentences.slice(0, 4).join('. ') + '.'; // 4 sentences for 15m
+    const longSummary = sentences.slice(0, 6).join('. ') + '.'; // 6 sentences for 30m
+
+    return {
+      id: article._id || article.url,
+      title: article.title,
+      summary: {
+        '5m': shortSummary,
+        '15m': mediumSummary,
+        '30m': longSummary,
+      },
+      sourceScore: article.sourceScore || 75,
+      verificationBadge: article.verificationBadge || 'UNVERIFIED',
+      impactTags: article.impactTags || [],
+      anxietyScore: article.anxietyScore || 50,
+      category: article.category || 'General',
+      imageUrl: article.urlToImage || article.imageUrl,
+      publishedAt: article.publishedAt,
+      readTime: article.readTime || '5 min',
+      source: article.source,
+      author: article.author || article.source?.name,
+      url: article.url,
+      content: content, // Store full content for Zen mode
+      description: description,
+      trending: article.trending || false,
+      featured: article.featured || false,
+    };
+  };
+
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [briefingData, articlesData] = await Promise.all([
-        mockDashboardAPI.getLiveIntelligenceBriefing(userProfile),
-        mockDashboardAPI.getArticlesByMode(readingMode)
-      ]);
+      // Determine category based on active interest
+      let category = activeFilter === 'all' ? undefined : activeFilter;
 
-      setBriefing(briefingData);
-      setArticles(articlesData);
+      // If an interest is selected, use it as the category
+      if (activeInterest) {
+        category = activeInterest.toLowerCase();
+      }
+
+      console.log('📡 Loading dashboard with params:', {
+        activeInterest,
+        category,
+        readingMode,
+        activeFilter
+      });
+
+      // Call real backend - dashboard overview endpoint returns everything
+      const overviewData = await dashboardAPI.getDashboardOverview({
+        page: 1,
+        limit: 20,
+        readingMode: readingMode,
+        category: category,
+      });
+
+      console.log('✅ Dashboard data loaded:', {
+        articlesCount: overviewData.data?.articles?.length,
+        category: category
+      });
+
+      if (overviewData.success) {
+        // Set briefing data
+        if (overviewData.data.briefing) {
+          setBriefing(overviewData.data.briefing);
+        }
+
+        // Map and set articles
+        if (overviewData.data.articles) {
+          const mappedArticles = overviewData.data.articles.map(mapBackendArticleToFrontend);
+          setAllArticles(mappedArticles); // Store all articles
+
+          // Filter articles based on reading mode
+          const limit = getArticleLimitForMode(readingMode);
+          const filteredArticles = mappedArticles.slice(0, limit);
+          setArticles(filteredArticles);
+        }
+
+        // Set volatility data
+        if (overviewData.data.volatility) {
+          setVolatility(overviewData.data.volatility.index || 50);
+        }
+
+        // Set trending topics
+        if (overviewData.data.trendingTopics) {
+          setTrendingTopics(overviewData.data.trendingTopics);
+        }
+
+        // Set market data
+        if (overviewData.data.market) {
+          setMarketData(overviewData.data.market);
+        }
+
+        // Set user stats
+        if (overviewData.data.userStats) {
+          setUserStats(overviewData.data.userStats);
+        }
+
+        // Set global vectors
+        if (overviewData.data.globalVectors) {
+          setGlobalVectors(overviewData.data.globalVectors);
+        }
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
+      // Optionally show error UI or fallback to cached data
+      alert('Failed to load dashboard data. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -79,10 +228,61 @@ const ControlCenterPage = () => {
     setFocusedArticle(null);
   };
 
-  const handleSearch = (e) => {
+  const handlePreferencesChange = (change) => {
+    console.log('Preference updated:', change);
+
+    if (change.type === 'industries') {
+      // When industries are toggled, we could implement multi-select filtering
+      // For now, we'll treat the last selected one as the active filter
+      const industries = change.value;
+      if (industries.length > 0) {
+        // Get the most recently selected interest
+        const lastSelected = industries[industries.length - 1];
+        setActiveInterest(lastSelected);
+      } else {
+        // If all deselected, show all
+        setActiveInterest(null);
+      }
+    }
+  };
+
+  const handleInterestClick = (interest) => {
+    console.log('🎯 Interest clicked:', interest);
+    console.log('📊 Current activeInterest:', activeInterest);
+
+    // Toggle interest - if already active, deactivate it (show all)
+    if (activeInterest === interest) {
+      console.log('❌ Deactivating filter - showing all news');
+      setActiveInterest(null);
+    } else {
+      console.log('✅ Activating filter for:', interest);
+      setActiveInterest(interest);
+    }
+  };
+
+  const handleSearch = async (e) => {
     const query = e.target.value;
     setSearchQuery(query);
-    console.log(`Searching (${searchMode}):`, query);
+
+    if (query.length < 3) {
+      // Reset to normal view if query too short
+      loadDashboardData();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const searchResults = await newsAPI.searchNews(query, 1, 20);
+
+      if (searchResults.success) {
+        const mappedArticles = searchResults.data.articles.map(mapBackendArticleToFrontend);
+        setArticles(mappedArticles);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Animation variants
@@ -216,14 +416,8 @@ const ControlCenterPage = () => {
             className="mb-8"
           >
             <TrendRadarBar
-              trends={[
-                { name: 'Federal Reserve', change: 245, category: 'economy' },
-                { name: 'AI Healthcare', change: 189, category: 'tech' },
-                { name: 'Tech Layoffs', change: 92, category: 'tech' },
-                { name: 'Climate Policy', change: 45, category: 'environment' },
-                { name: 'Crypto Regulation', change: -12, category: 'crypto' },
-                { name: 'EV Market', change: 178, category: 'auto' }
-              ]}
+              trends={trendingTopics}
+              marketData={marketData}
               onTopicClick={(topic) => console.log('Filter by:', topic.name)}
             />
           </motion.div>
@@ -267,8 +461,8 @@ const ControlCenterPage = () => {
                     value={readingMode}
                     onChange={handleReadingModeChange}
                     stats={{
-                      originalCount: 42,
-                      shownCount: readingMode === '5m' ? 8 : readingMode === '15m' ? 12 : 18,
+                      originalCount: allArticles.length,
+                      shownCount: articles.length,
                       avgSentences: readingMode === '5m' ? 2 : readingMode === '15m' ? 4 : 6
                     }}
                   />
@@ -303,12 +497,13 @@ const ControlCenterPage = () => {
                 </div>
 
                 {/* Briefing Content */}
-                {briefing && (
-                  <LiveIntelligenceBriefing
-                    briefing={briefing}
-                    loading={loading && !briefing}
-                  />
-                )}
+                <LiveIntelligenceBriefing
+                  onFilterByTopic={(topic) => {
+                    console.log('🎯 Filter by topic:', topic);
+                    // TODO: Implement topic-based filtering
+                    // Could search for topic.name in articles or filter by category
+                  }}
+                />
               </motion.div>
 
               {/* Personalization Strip */}
@@ -319,7 +514,9 @@ const ControlCenterPage = () => {
                 className="mb-8"
               >
                 <PersonalizationStrip
-                  onPreferencesChange={(change) => console.log('Preference updated:', change)}
+                  onPreferencesChange={handlePreferencesChange}
+                  activeInterest={activeInterest}
+                  onInterestClick={handleInterestClick}
                 />
               </motion.div>
 
@@ -414,6 +611,7 @@ const ControlCenterPage = () => {
                   initial="hidden"
                   animate="visible"
                   className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                  data-articles-section
                 >
                   {articles.map((article) => (
                     <motion.div
@@ -459,7 +657,7 @@ const ControlCenterPage = () => {
                 className="sticky top-24 space-y-6"
               >
                 {/* AI Orb */}
-                <AIOrb volatility={78} />
+                <AIOrb volatility={volatility} />
 
                 {/* Stress Guard / Calm Mode */}
                 <StressGuard
@@ -469,7 +667,10 @@ const ControlCenterPage = () => {
                 />
 
                 {/* Wellness Panel */}
-                <RightPanelWellness />
+                <RightPanelWellness
+                  userStats={userStats}
+                  globalVectors={globalVectors}
+                />
 
                 {/* Quick Stats Card */}
                 <motion.div
@@ -482,15 +683,21 @@ const ControlCenterPage = () => {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-text-secondary">Articles Read</span>
-                      <span className="text-lg font-bold text-gradient-serenity">12</span>
+                      <span className="text-lg font-bold text-gradient-serenity">
+                        {userStats?.articlesReadToday || 0}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-text-secondary">Time Saved</span>
-                      <span className="text-lg font-bold text-gradient-serenity">45m</span>
+                      <span className="text-lg font-bold text-gradient-serenity">
+                        {userStats?.timeSaved || 0}m
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-text-secondary">Focus Score</span>
-                      <span className="text-lg font-bold text-gradient-serenity">87%</span>
+                      <span className="text-lg font-bold text-gradient-serenity">
+                        {userStats?.focusScore || 0}%
+                      </span>
                     </div>
                   </div>
                 </motion.div>

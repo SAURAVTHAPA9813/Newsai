@@ -27,6 +27,7 @@ const AICommandToolbar = ({ articleId, onModuleClick }) => {
       component: MarketImpactModule
     },
     {
+      
       id: 'context',
       icon: FiBookOpen,
       label: 'Context',
@@ -39,7 +40,7 @@ const AICommandToolbar = ({ articleId, onModuleClick }) => {
       icon: FiShuffle,
       label: 'Views',
       description: 'Multiple perspectives',
-      color: 'from-purple-500 to-pink-500',
+      color: 'from-sky-500 to-pink-500',
       component: PerspectivesModule
     }
   ];

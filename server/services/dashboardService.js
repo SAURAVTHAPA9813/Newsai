@@ -2,7 +2,23 @@ const newsService = require('./newsService');
 const trendAnalysisService = require('./trendAnalysisService');
 const articleAnalysisService = require('./articleAnalysisService');
 const intelligenceBriefingService = require('./intelligenceBriefingService');
+const marketDataService = require('./marketDataService');
 const { UserStats } = require('../models/UserStats');
+
+/**
+ * Map frontend interest categories to NewsAPI categories
+ */
+const mapCategoryToNewsAPI = (category) => {
+  const categoryMap = {
+    'finance': 'business',
+    'tech': 'technology',
+    'healthcare': 'health',
+    'markets': 'business',
+    'global': 'general'
+  };
+
+  return categoryMap[category?.toLowerCase()] || null;
+};
 
 /**
  * Get consolidated dashboard overview with all necessary data in one call
@@ -19,50 +35,85 @@ const getDashboardOverview = async (user, options = {}) => {
       category = 'all'
     } = options;
 
-    // Fetch all data in parallel for maximum performance
-    const [
-      articlesResult,
-      trendingTopics,
-      marketData,
-      userStats,
-      briefing,
-      volatilityData,
-      globalVectors
-    ] = await Promise.allSettled([
-      // 1. Articles with analysis
-      newsService.getHeadlines(page, limit, category),
+    // Map category to NewsAPI format
+    const apiCategory = category && category !== 'all' ? mapCategoryToNewsAPI(category) : null;
 
-      // 2. Trending topics
-      trendAnalysisService.getTrendingTopics(),
+    console.log('🔍 Dashboard Overview Request:', {
+      originalCategory: category,
+      mappedCategory: apiCategory,
+      readingMode,
+      page,
+      limit
+    });
 
-      // 3. Market data
-      getMarketData(),
+    // Fetch articles - use category-specific or general headlines
+    const articles = apiCategory
+      ? await newsService.getNewsByCategory(apiCategory, page)
+      : await newsService.getHeadlines(page, limit);
 
-      // 4. User reading stats
-      getUserReadingStats(user._id),
+    console.log(`✅ Fetched ${articles.length} articles for category: ${apiCategory || 'all'}`);
 
-      // 5. Intelligence briefing
-      intelligenceBriefingService.generateIntelligenceBriefing(),
+    // Extract trending topics from articles
+    const trendingTopics = articles.length > 0
+      ? trendAnalysisService.analyzeTrends(articles)
+      : { trends: [], marketData: {}, lastUpdated: new Date().toISOString() };
 
-      // 6. Global volatility
-      calculateGlobalVolatility(),
+    // Get market data
+    const marketData = await getMarketData();
 
-      // 7. Global vectors (trending stories)
-      getGlobalVectors()
-    ]);
+    // Generate intelligence briefing
+    let briefing = null;
+    try {
+      briefing = await intelligenceBriefingService.generateBriefing(articles, 'Global');
+    } catch (error) {
+      console.error('Briefing generation error:', error);
+      // Fallback briefing
+      briefing = {
+        globalSituation: 'Intelligence briefing temporarily unavailable',
+        globalDelta: 'Please refresh to retry',
+        impactOnYou: {
+          industry: 'General',
+          region: 'Global',
+          summary: 'Unable to generate personalized insights at this time',
+          keyPoints: []
+        }
+      };
+    }
+
+    // Calculate volatility
+    const volatility = await calculateGlobalVolatility();
+
+    // Get global vectors
+    const globalVectorsData = await getGlobalVectors();
+
+    // Get user stats
+    const userStats = await getUserReadingStats(user._id);
+    const focusScore = userStats.articlesReadToday > 0
+      ? Math.min(Math.round(70 + (userStats.currentStreak * 2) + (userStats.articlesReadToday * 5)), 100)
+      : 0;
+    const timeSaved = Math.round(userStats.articlesReadToday * 3); // 3 min saved per article
 
     // Build consolidated response
     const response = {
       success: true,
       timestamp: new Date().toISOString(),
       data: {
-        articles: articlesResult.status === 'fulfilled' ? articlesResult.value : [],
-        trending: trendingTopics.status === 'fulfilled' ? trendingTopics.value : { trends: [] },
-        market: marketData.status === 'fulfilled' ? marketData.value : getDefaultMarketData(),
-        userStats: userStats.status === 'fulfilled' ? userStats.value : getDefaultUserStats(),
-        briefing: briefing.status === 'fulfilled' ? briefing.value : null,
-        volatility: volatilityData.status === 'fulfilled' ? volatilityData.value : { index: 50 },
-        globalVectors: globalVectors.status === 'fulfilled' ? globalVectors.value : { vectors: [] },
+        articles: articles,
+        trending: trendingTopics,
+        trendingTopics: trendingTopics.trends || [],
+        market: marketData,
+        briefing: briefing,
+        volatility: volatility,
+        globalVectors: globalVectorsData.vectors || [],
+        userStats: {
+          articlesReadToday: userStats.articlesReadToday,
+          timeSpentToday: userStats.timeSpentToday,
+          focusScore: focusScore,
+          timeSaved: timeSaved,
+          currentStreak: userStats.currentStreak,
+          level: userStats.level,
+          totalXP: userStats.totalXP
+        },
         metadata: {
           readingMode,
           category,
@@ -83,13 +134,14 @@ const getDashboardOverview = async (user, options = {}) => {
  * Get market data (S&P 500, BTC, VIX)
  */
 const getMarketData = async () => {
-  // In production, this would fetch from a real market data API
-  // For now, return realistic mock data
-  return {
-    sp500: { value: 4235 + Math.random() * 100 - 50, change: (Math.random() * 2 - 1).toFixed(2) },
-    btc: { value: 43200 + Math.random() * 1000 - 500, change: (Math.random() * 4 - 2).toFixed(2) },
-    vix: { value: (18 + Math.random() * 4 - 2).toFixed(1), change: (Math.random() * 1 - 0.5).toFixed(2) }
-  };
+  try {
+    // Fetch real-time market data from Finnhub API
+    return await marketDataService.getRealTimeMarketData();
+  } catch (error) {
+    console.error('Error fetching market data:', error);
+    // Fallback to simulated data
+    return marketDataService.getFallbackMarketData();
+  }
 };
 
 /**

@@ -230,7 +230,7 @@ const VerificationInputArea = ({ onVerify, isVerifying }) => {
         whileTap={{ scale: inputText.trim() && !isVerifying ? 0.98 : 1 }}
         className={`w-full px-6 py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-3 ${
           inputText.trim() && !isVerifying
-            ? 'bg-gradient-to-r from-brand-blue to-purple-600 text-white shadow-lg hover:shadow-xl'
+            ? 'bg-gradient-to-r from-brand-blue to-sky-500 text-white shadow-lg hover:shadow-xl'
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
         }`}
       >

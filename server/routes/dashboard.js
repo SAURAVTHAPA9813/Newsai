@@ -5,14 +5,13 @@ const { calculateGlobalVolatility } = require('../services/articleAnalysisServic
 const { extractTrendingTopics, getMarketData } = require('../services/trendAnalysisService');
 const newsService = require('../services/newsService');
 const dashboardService = require('../services/dashboardService');
-const { cacheMiddleware, userQueryKey } = require('../middleware/cache');
 
 /**
  * @desc    Get consolidated dashboard overview (all data in one call)
  * @route   GET /api/dashboard/overview
  * @access  Private
  */
-router.get('/overview', protect, cacheMiddleware(90, userQueryKey), async (req, res) => {
+router.get('/overview', protect, async (req, res) => {
   try {
     const { page, limit, readingMode, category } = req.query;
 

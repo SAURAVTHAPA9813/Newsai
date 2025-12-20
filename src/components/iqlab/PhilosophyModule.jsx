@@ -41,7 +41,7 @@ const PhilosophyModule = ({ quotes }) => {
 
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-3">
-          <FiBookOpen className="w-5 h-5 text-purple-600" />
+          <FiBookOpen className="w-5 h-5 text-sky-600" />
           <h2 className="text-lg font-bold text-text-dark uppercase tracking-wider">
             Information Philosophy
           </h2>
@@ -52,7 +52,7 @@ const PhilosophyModule = ({ quotes }) => {
           <p className="text-base text-text-dark leading-relaxed italic mb-3">
             "{currentQuote.text}"
           </p>
-          <div className="text-sm font-semibold text-purple-700">
+          <div className="text-sm font-semibold text-sky-700">
             – {currentQuote.author}
           </div>
           {currentQuote.source && (
@@ -67,7 +67,7 @@ const PhilosophyModule = ({ quotes }) => {
           {currentQuote.tags.map((tag) => (
             <span
               key={tag}
-              className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700"
+              className="px-2 py-1 rounded text-xs font-medium bg-sky-100 text-sky-700"
             >
               #{tag}
             </span>

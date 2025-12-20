@@ -3,51 +3,76 @@
  * Analyzes news articles to generate credibility scores, anxiety levels, and impact metrics
  */
 
+const { verifyArticle } = require("./verificationService");
+
 // Known source credibility database (0-100 scale)
 const SOURCE_CREDIBILITY = {
   // Tier 1: Highly credible (90-100)
-  'Reuters': 98,
-  'Associated Press': 97,
-  'BBC News': 95,
-  'The New York Times': 92,
-  'The Washington Post': 92,
-  'The Guardian': 91,
-  'NPR': 90,
+  Reuters: 98,
+  "Associated Press": 97,
+  "BBC News": 95,
+  "The New York Times": 92,
+  "The Washington Post": 92,
+  "The Guardian": 91,
+  NPR: 90,
 
   // Tier 2: Very credible (80-89)
-  'The Wall Street Journal': 88,
-  'Financial Times': 87,
-  'The Economist': 86,
-  'TIME': 85,
-  'Bloomberg': 84,
-  'CNN': 82,
-  'Al Jazeera English': 81,
+  "The Wall Street Journal": 88,
+  "Financial Times": 87,
+  "The Economist": 86,
+  TIME: 85,
+  Bloomberg: 84,
+  CNN: 82,
+  "Al Jazeera English": 81,
 
   // Tier 3: Credible (70-79)
-  'USA Today': 78,
-  'CBS News': 77,
-  'ABC News': 76,
-  'NBC News': 75,
-  'Fox News': 72,
-  'MSNBC': 72,
-  'The Hill': 71,
+  "USA Today": 78,
+  "CBS News": 77,
+  "ABC News": 76,
+  "NBC News": 75,
+  "Fox News": 72,
+  MSNBC: 72,
+  "The Hill": 71,
 
   // Tier 4: Moderate credibility (60-69)
-  'Newsweek': 68,
-  'Business Insider': 65,
-  'Forbes': 64,
-  'TechCrunch': 63,
-  'Ars Technica': 62,
+  Newsweek: 68,
+  "Business Insider": 65,
+  Forbes: 64,
+  TechCrunch: 63,
+  "Ars Technica": 62,
 
   // Default for unknown sources
-  'default': 55
+  default: 55,
 };
 
 // High-anxiety keywords (indicate stressful content)
 const ANXIETY_KEYWORDS = {
-  high: ['death', 'killed', 'war', 'attack', 'terror', 'shooting', 'murder', 'crisis', 'disaster', 'collapse', 'pandemic'],
-  medium: ['concern', 'worry', 'risk', 'threat', 'warning', 'decline', 'loss', 'fall', 'drop', 'struggle'],
-  low: ['issue', 'problem', 'challenge', 'change', 'shift']
+  high: [
+    "death",
+    "killed",
+    "war",
+    "attack",
+    "terror",
+    "shooting",
+    "murder",
+    "crisis",
+    "disaster",
+    "collapse",
+    "pandemic",
+  ],
+  medium: [
+    "concern",
+    "worry",
+    "risk",
+    "threat",
+    "warning",
+    "decline",
+    "loss",
+    "fall",
+    "drop",
+    "struggle",
+  ],
+  low: ["issue", "problem", "challenge", "change", "shift"],
 };
 
 /**
@@ -64,9 +89,10 @@ function calculateSourceScore(sourceName) {
   }
 
   // Partial match (e.g., "BBC" matches "BBC News")
-  const partialMatch = Object.keys(SOURCE_CREDIBILITY).find(key =>
-    sourceName.toLowerCase().includes(key.toLowerCase()) ||
-    key.toLowerCase().includes(sourceName.toLowerCase())
+  const partialMatch = Object.keys(SOURCE_CREDIBILITY).find(
+    (key) =>
+      sourceName.toLowerCase().includes(key.toLowerCase()) ||
+      key.toLowerCase().includes(sourceName.toLowerCase())
   );
 
   if (partialMatch) {
@@ -83,34 +109,34 @@ function calculateSourceScore(sourceName) {
  * @param {string} category - Article category
  * @returns {number} Anxiety score (0-100, higher = more stressful)
  */
-function calculateAnxietyScore(title = '', description = '', category = '') {
+function calculateAnxietyScore(title = "", description = "", category = "") {
   const text = `${title} ${description}`.toLowerCase();
   let score = 0;
 
   // Base score by category
   const categoryScores = {
-    'politics': 40,
-    'health': 35,
-    'science': 20,
-    'technology': 15,
-    'business': 30,
-    'sports': 10,
-    'entertainment': 5,
-    'general': 25
+    politics: 40,
+    health: 35,
+    science: 20,
+    technology: 15,
+    business: 30,
+    sports: 10,
+    entertainment: 5,
+    general: 25,
   };
 
   score = categoryScores[category] || 25;
 
   // Add points for anxiety keywords
-  ANXIETY_KEYWORDS.high.forEach(keyword => {
+  ANXIETY_KEYWORDS.high.forEach((keyword) => {
     if (text.includes(keyword)) score += 15;
   });
 
-  ANXIETY_KEYWORDS.medium.forEach(keyword => {
+  ANXIETY_KEYWORDS.medium.forEach((keyword) => {
     if (text.includes(keyword)) score += 8;
   });
 
-  ANXIETY_KEYWORDS.low.forEach(keyword => {
+  ANXIETY_KEYWORDS.low.forEach((keyword) => {
     if (text.includes(keyword)) score += 3;
   });
 
@@ -124,10 +150,10 @@ function calculateAnxietyScore(title = '', description = '', category = '') {
  * @returns {string} Verification status
  */
 function getVerificationBadge(sourceScore) {
-  if (sourceScore >= 90) return 'cross-verified';
-  if (sourceScore >= 75) return 'verified';
-  if (sourceScore >= 60) return 'reviewing';
-  return 'unverified';
+  if (sourceScore >= 90) return "cross-verified";
+  if (sourceScore >= 75) return "verified";
+  if (sourceScore >= 60) return "reviewing";
+  return "unverified";
 }
 
 /**
@@ -136,31 +162,39 @@ function getVerificationBadge(sourceScore) {
  * @param {string} title - Article title
  * @returns {object} Impact scores for different life areas
  */
-function calculateLifeImpact(category, title = '') {
+function calculateLifeImpact(category, title = "") {
   const text = title.toLowerCase();
 
   // Base scores by category
   const baseImpact = {
-    'politics': { personal: 40, financial: 50, career: 45 },
-    'health': { personal: 80, financial: 60, career: 30 },
-    'science': { personal: 30, financial: 20, career: 40 },
-    'technology': { personal: 50, financial: 40, career: 70 },
-    'business': { personal: 30, financial: 85, career: 75 },
-    'sports': { personal: 20, financial: 10, career: 15 },
-    'entertainment': { personal: 15, financial: 5, career: 10 },
-    'general': { personal: 30, financial: 30, career: 30 }
+    politics: { personal: 40, financial: 50, career: 45 },
+    health: { personal: 80, financial: 60, career: 30 },
+    science: { personal: 30, financial: 20, career: 40 },
+    technology: { personal: 50, financial: 40, career: 70 },
+    business: { personal: 30, financial: 85, career: 75 },
+    sports: { personal: 20, financial: 10, career: 15 },
+    entertainment: { personal: 15, financial: 5, career: 10 },
+    general: { personal: 30, financial: 30, career: 30 },
   };
 
-  let impact = baseImpact[category] || baseImpact['general'];
+  let impact = baseImpact[category] || baseImpact["general"];
 
   // Adjust based on keywords
-  if (text.includes('tax') || text.includes('price') || text.includes('cost')) {
+  if (text.includes("tax") || text.includes("price") || text.includes("cost")) {
     impact.financial += 15;
   }
-  if (text.includes('job') || text.includes('employment') || text.includes('work')) {
+  if (
+    text.includes("job") ||
+    text.includes("employment") ||
+    text.includes("work")
+  ) {
     impact.career += 20;
   }
-  if (text.includes('health') || text.includes('safety') || text.includes('life')) {
+  if (
+    text.includes("health") ||
+    text.includes("safety") ||
+    text.includes("life")
+  ) {
     impact.personal += 20;
   }
 
@@ -168,7 +202,7 @@ function calculateLifeImpact(category, title = '') {
   return {
     personal: Math.min(impact.personal, 100),
     financial: Math.min(impact.financial, 100),
-    career: Math.min(impact.career, 100)
+    career: Math.min(impact.career, 100),
   };
 }
 
@@ -184,20 +218,79 @@ function calculateEngagement(sourceScore, category) {
 
   // Category multipliers
   const categoryMultipliers = {
-    'politics': 1.8,
-    'technology': 1.5,
-    'business': 1.3,
-    'health': 1.4,
-    'sports': 1.6,
-    'entertainment': 2.0,
-    'science': 1.2,
-    'general': 1.0
+    politics: 1.8,
+    technology: 1.5,
+    business: 1.3,
+    health: 1.4,
+    sports: 1.6,
+    entertainment: 2.0,
+    science: 1.2,
+    general: 1.0,
   };
 
   const multiplier = categoryMultipliers[category] || 1.0;
-  const engagement = Math.floor(base * multiplier * (0.8 + Math.random() * 0.4)); // Add 20% variance
+  const engagement = Math.floor(
+    base * multiplier * (0.8 + Math.random() * 0.4)
+  ); // Add 20% variance
 
   return engagement;
+}
+
+/**
+ * Generate impact tags based on category and life impact scores
+ * @param {string} category - Article category
+ * @param {object} lifeImpact - Life impact scores object
+ * @param {string} title - Article title for additional context
+ * @returns {Array<string>} Array of active impact tags
+ */
+function generateImpactTags(category, lifeImpact, title = "") {
+  const tags = [];
+  const text = title.toLowerCase();
+
+  // Auto-activate 'money' tag for finance/business categories
+  if (category === 'business' || category === 'finance' || category === 'markets' ||
+      category === 'economy' || text.includes('stock') || text.includes('market') ||
+      text.includes('economy') || text.includes('finance')) {
+    tags.push('money');
+  }
+
+  // Auto-activate 'career' tag for tech/business
+  if (category === 'technology' || category === 'tech' || category === 'business' ||
+      text.includes('job') || text.includes('hiring') || text.includes('employment') ||
+      text.includes('career') || text.includes('startup')) {
+    tags.push('career');
+  }
+
+  // Activate tags based on impact scores (threshold: 60+)
+  if (lifeImpact.financial >= 60 && !tags.includes('money')) {
+    tags.push('money');
+  }
+
+  if (lifeImpact.career >= 60 && !tags.includes('career')) {
+    tags.push('career');
+  }
+
+  if (lifeImpact.personal >= 60 || category === 'health' || category === 'healthcare') {
+    tags.push('health');
+  }
+
+  // Location tag for location-specific or world news
+  if (text.includes('earthquake') || text.includes('tsunami') ||
+      text.includes('hurricane') || text.includes('disaster') ||
+      text.includes('flood') || text.includes('storm') ||
+      category === 'world' || category === 'environment' || category === 'general') {
+    tags.push('location');
+  }
+
+  // Remove duplicates and return (ensure at least one tag for visibility)
+  const uniqueTags = [...new Set(tags)];
+
+  // If no tags were added, add 'location' as default for general news
+  if (uniqueTags.length === 0) {
+    uniqueTags.push('location');
+  }
+
+  return uniqueTags;
 }
 
 /**
@@ -206,16 +299,21 @@ function calculateEngagement(sourceScore, category) {
  * @returns {object} Analysis results with all scores
  */
 function analyzeArticle(article) {
-  const sourceName = article.source?.name || 'Unknown';
-  const title = article.title || '';
-  const description = article.description || '';
-  const category = article.category || 'general';
+  const sourceName = article.source?.name || "Unknown";
+  const title = article.title || "";
+  const description = article.description || "";
+  const category = article.category || "general";
 
-  const sourceScore = calculateSourceScore(sourceName);
+  // Use real verification service for source credibility
+  const { getSourceCredibility } = require('./verificationService');
+  const sourceCredibility = getSourceCredibility(sourceName);
+
+  const sourceScore = sourceCredibility.score; // Real score from verification service
   const anxietyScore = calculateAnxietyScore(title, description, category);
-  const verificationBadge = getVerificationBadge(sourceScore);
+  const verificationBadge = sourceCredibility.badge; // Real verification badge (cross-verified, verified, reviewing, unverified)
   const lifeImpact = calculateLifeImpact(category, title);
   const engagement = calculateEngagement(sourceScore, category);
+  const impactTags = generateImpactTags(category, lifeImpact, title); // Generate impact tags automatically
 
   return {
     sourceScore,
@@ -223,9 +321,18 @@ function analyzeArticle(article) {
     verificationBadge,
     lifeImpact,
     engagement,
+    impactTags, // Add impact tags to the return object
     // Additional metadata
-    sourceTier: sourceScore >= 90 ? 'premium' : sourceScore >= 75 ? 'verified' : sourceScore >= 60 ? 'standard' : 'unverified',
-    stressLevel: anxietyScore > 70 ? 'high' : anxietyScore > 40 ? 'medium' : 'low'
+    sourceTier:
+      sourceCredibility.tier === 1
+        ? "premium"
+        : sourceCredibility.tier === 2
+        ? "verified"
+        : sourceCredibility.tier === 3
+        ? "standard"
+        : "unverified",
+    stressLevel:
+      anxietyScore > 70 ? "high" : anxietyScore > 40 ? "medium" : "low",
   };
 }
 
@@ -240,39 +347,54 @@ function calculateGlobalVolatility(articles) {
       index: 50,
       sourceCount: 0,
       breakingNewsCount: 0,
-      avgAnxiety: 0
+      avgAnxiety: 0,
     };
   }
 
   // 1. Calculate average anxiety score
   let totalAnxiety = 0;
-  articles.forEach(article => {
+  articles.forEach((article) => {
     const anxiety = calculateAnxietyScore(
-      article.title || '',
-      article.description || '',
-      article.category || 'general'
+      article.title || "",
+      article.description || "",
+      article.category || "general"
     );
     totalAnxiety += anxiety;
   });
   const avgAnxiety = totalAnxiety / articles.length;
 
   // 2. Count unique sources (higher diversity = higher volatility)
-  const uniqueSources = new Set(articles.map(a => a.source?.name).filter(Boolean));
+  const uniqueSources = new Set(
+    articles.map((a) => a.source?.name).filter(Boolean)
+  );
   const sourceCount = uniqueSources.size;
 
   // 3. Count "breaking news" indicators
-  const breakingKeywords = ['breaking', 'just in', 'developing', 'urgent', 'alert'];
-  const breakingNewsCount = articles.filter(article => {
-    const text = `${article.title || ''} ${article.description || ''}`.toLowerCase();
-    return breakingKeywords.some(keyword => text.includes(keyword));
+  const breakingKeywords = [
+    "breaking",
+    "just in",
+    "developing",
+    "urgent",
+    "alert",
+  ];
+  const breakingNewsCount = articles.filter((article) => {
+    const text = `${article.title || ""} ${
+      article.description || ""
+    }`.toLowerCase();
+    return breakingKeywords.some((keyword) => text.includes(keyword));
   }).length;
 
   // 4. Analyze source credibility variance (high variance = higher volatility)
-  const credibilityScores = articles.map(a => calculateSourceScore(a.source?.name));
-  const avgCredibility = credibilityScores.reduce((sum, score) => sum + score, 0) / credibilityScores.length;
-  const credibilityVariance = credibilityScores.reduce((sum, score) => {
-    return sum + Math.pow(score - avgCredibility, 2);
-  }, 0) / credibilityScores.length;
+  const credibilityScores = articles.map((a) =>
+    calculateSourceScore(a.source?.name)
+  );
+  const avgCredibility =
+    credibilityScores.reduce((sum, score) => sum + score, 0) /
+    credibilityScores.length;
+  const credibilityVariance =
+    credibilityScores.reduce((sum, score) => {
+      return sum + Math.pow(score - avgCredibility, 2);
+    }, 0) / credibilityScores.length;
   const credibilityStdDev = Math.sqrt(credibilityVariance);
 
   // 5. Calculate composite volatility index (0-100)
@@ -301,7 +423,7 @@ function calculateGlobalVolatility(articles) {
     index: volatilityIndex,
     sourceCount,
     breakingNewsCount,
-    avgAnxiety: Math.round(avgAnxiety)
+    avgAnxiety: Math.round(avgAnxiety),
   };
 }
 
@@ -312,5 +434,5 @@ module.exports = {
   calculateLifeImpact,
   calculateEngagement,
   analyzeArticle,
-  calculateGlobalVolatility
+  calculateGlobalVolatility,
 };

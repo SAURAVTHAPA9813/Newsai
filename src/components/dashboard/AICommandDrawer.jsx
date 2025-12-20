@@ -13,7 +13,7 @@ const AICommandDrawer = ({ articleId, isOpen, onClose }) => {
     { id: 'explain', label: 'Explain', icon: FiMessageCircle, color: 'from-yellow-500 to-yellow-600' },
     { id: 'keypoints', label: 'Key Point', icon: FiBookOpen, color: 'from-blue-500 to-blue-600' },
     { id: 'market', label: 'Market', icon: FiDollarSign, color: 'from-green-500 to-green-600' },
-    { id: 'perspectives', label: 'Perspectives', icon: FiShuffle, color: 'from-purple-500 to-purple-600' }
+    { id: 'perspectives', label: 'Perspectives', icon: FiShuffle, color: 'from-sky-500 to-sky-600' }
   ];
 
   const handleCommandClick = (e, commandId) => {

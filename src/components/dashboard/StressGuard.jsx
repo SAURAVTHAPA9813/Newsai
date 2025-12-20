@@ -58,7 +58,7 @@ const StressGuard = ({ articles = [], onCalmModeChange, onDecompressClick }) => 
         }}
       >
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-sky-500">
             <FiWind className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -73,7 +73,7 @@ const StressGuard = ({ articles = [], onCalmModeChange, onDecompressClick }) => 
         <motion.button
           onClick={handleToggle}
           className={`relative w-14 h-7 rounded-full transition-colors ${
-            calmModeEnabled ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gray-300'
+            calmModeEnabled ? 'bg-gradient-to-r from-blue-500 to-sky-500' : 'bg-gray-300'
           }`}
           whileTap={{ scale: 0.95 }}
         >
@@ -168,7 +168,7 @@ const StressGuard = ({ articles = [], onCalmModeChange, onDecompressClick }) => 
                 onClick={handleDecompress}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-sm shadow-lg flex items-center justify-center gap-2 transition-all hover:shadow-xl"
+                className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-sky-500 text-white font-semibold text-sm shadow-lg flex items-center justify-center gap-2 transition-all hover:shadow-xl"
               >
                 <FiFilter className="w-4 h-4" />
                 <span>Decompress - Show Low-Stress Stories Only</span>

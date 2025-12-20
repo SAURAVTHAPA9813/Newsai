@@ -81,10 +81,10 @@
 
   .neon-glow-purple {
     text-shadow:
-      0 0 10px #B026FF,
-      0 0 20px #B026FF,
-      0 0 30px #B026FF,
-      0 0 40px #B026FF;
+      0 0 10px #5B8DEF,
+      0 0 20px #5B8DEF,
+      0 0 30px #5B8DEF,
+      0 0 40px #5B8DEF;
   }
 
   .neon-glow-yellow {
@@ -103,10 +103,10 @@
   }
 
   .neon-border-purple {
-    border: 2px solid #B026FF;
+    border: 2px solid #5B8DEF;
     box-shadow:
-      0 0 10px #B026FF,
-      inset 0 0 10px #B026FF;
+      0 0 10px #5B8DEF,
+      inset 0 0 10px #5B8DEF;
   }
 
   .neon-border-teal {

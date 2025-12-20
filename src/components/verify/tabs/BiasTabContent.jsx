@@ -41,7 +41,7 @@ const BiasTabContent = ({ biasData }) => {
     } else if (leanUpper.includes('RIGHT')) {
       return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' };
     } else {
-      return { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' };
+      return { bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-300' };
     }
   };
 

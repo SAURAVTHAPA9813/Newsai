@@ -8,7 +8,7 @@ const AchievementBadges = ({ badges }) => {
       case 'TRUTH': return 'from-blue-500 to-blue-600';
       case 'STREAK': return 'from-orange-500 to-orange-600';
       case 'MARKET': return 'from-green-500 to-green-600';
-      case 'MENTAL_HEALTH': return 'from-purple-500 to-purple-600';
+      case 'MENTAL_HEALTH': return 'from-sky-500 to-sky-600';
       default: return 'from-gray-500 to-gray-600';
     }
   };
@@ -97,7 +97,7 @@ const AchievementBadges = ({ badges }) => {
                     initial={{ width: 0 }}
                     animate={{ width: `${(badge.progress.current / badge.progress.target) * 100}%` }}
                     transition={{ duration: 1, delay: 0.2 + index * 0.1 }}
-                    className="h-full bg-gradient-to-r from-brand-blue to-purple-600 rounded-full"
+                    className="h-full bg-gradient-to-r from-brand-blue to-sky-600 rounded-full"
                   />
                 </div>
               )}

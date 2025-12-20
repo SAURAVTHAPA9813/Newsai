@@ -1,28 +1,9 @@
-import { useState, useEffect } from 'react';
-import { FiGlobe, FiWind, FiTrendingUp, FiRefreshCw, FiChevronRight } from 'react-icons/fi';
-import mockDashboardAPI from '../../services/mockDashboardAPI';
+import { useState } from 'react';
+import { FiGlobe, FiWind, FiTrendingUp, FiChevronRight } from 'react-icons/fi';
 import DecompressMode from './DecompressMode';
 
-const RightPanelWellness = () => {
-  const [globalVectors, setGlobalVectors] = useState([]);
-  const [loading, setLoading] = useState(true);
+const RightPanelWellness = ({ userStats, globalVectors = [] }) => {
   const [showDecompress, setShowDecompress] = useState(false);
-
-  useEffect(() => {
-    loadGlobalVectors();
-  }, []);
-
-  const loadGlobalVectors = async () => {
-    setLoading(true);
-    try {
-      const data = await mockDashboardAPI.getGlobalVectors();
-      setGlobalVectors(data);
-    } catch (error) {
-      console.error('Error loading global vectors:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDecompressClick = () => {
     setShowDecompress(true);
@@ -68,29 +49,20 @@ const RightPanelWellness = () => {
 
       {/* Global Vectors Widget */}
       <div className="backdrop-filter backdrop-blur-md bg-gradient-to-br from-white/80 to-white/60 border border-white/40 rounded-3xl p-6 shadow-soft">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center">
-              <FiGlobe className="text-white text-xl" />
-            </div>
-            <div>
-              <h3 className="font-bold text-lg text-text-dark">Global Vectors</h3>
-              <div className="flex items-center gap-2 text-xs text-text-secondary">
-                <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                Live updates
-              </div>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-pink-500 rounded-2xl flex items-center justify-center">
+            <FiGlobe className="text-white text-xl" />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg text-text-dark">Global Vectors</h3>
+            <div className="flex items-center gap-2 text-xs text-text-secondary">
+              <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              Live updates
             </div>
           </div>
-          <button
-            onClick={loadGlobalVectors}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/70 hover:bg-white hover:scale-110 transition-all duration-300"
-            title="Refresh"
-          >
-            <FiRefreshCw className="text-text-secondary text-sm" />
-          </button>
         </div>
 
-        {loading ? (
+        {!globalVectors || globalVectors.length === 0 ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-16 bg-white/40 rounded-xl animate-pulse"></div>
@@ -119,7 +91,7 @@ const RightPanelWellness = () => {
                       </span>
                       <div className="flex items-center gap-1">
                         <FiTrendingUp className="text-green-600" />
-                        <span>{vector.trendingScore}%</span>
+                        <span>+{vector.momentum || vector.change || 0}%</span>
                       </div>
                     </div>
                     <div className="text-xs text-text-secondary mt-1">{vector.updateTime}</div>
@@ -154,15 +126,21 @@ const RightPanelWellness = () => {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-text-secondary">Articles Read</span>
-            <span className="text-lg font-bold text-brand-blue">12</span>
+            <span className="text-lg font-bold text-brand-blue">
+              {userStats?.articlesReadToday || 0}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-text-secondary">Time Spent</span>
-            <span className="text-lg font-bold text-green-600">18 min</span>
+            <span className="text-lg font-bold text-green-600">
+              {userStats?.timeSpentToday || 0} min
+            </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-text-secondary">IQ Score</span>
-            <span className="text-lg font-bold text-purple-600">+5 pts</span>
+            <span className="text-sm text-text-secondary">XP Gained</span>
+            <span className="text-lg font-bold text-sky-600">
+              +{userStats?.totalXP || 0} pts
+            </span>
           </div>
         </div>
       </div>

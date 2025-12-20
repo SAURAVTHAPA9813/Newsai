@@ -1,6 +1,9 @@
 const { GoogleGenAI } = require('@google/genai');
+const IntelligenceBriefing = require('../models/IntelligenceBriefing');
+const newsService = require('./newsService');
+const trendAnalysisService = require('./trendAnalysisService');
 
-// Initialize Gemini AI
+// Initialize Gemini AI with correct SDK
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 /**
@@ -57,8 +60,11 @@ Guidelines:
 
 Return ONLY valid JSON, no markdown formatting.`;
 
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-    // Response available
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt
+    });
+
     const text = response.text;
 
     // Parse the JSON response
@@ -85,4 +91,174 @@ Return ONLY valid JSON, no markdown formatting.`;
       }
     };
   }
+};
+
+/**
+ * Generate complete briefing for all modes
+ * @param {string} userId - Optional user ID for personalization
+ * @returns {Promise<object>} - Complete briefing with all modes
+ */
+exports.generateCompleteBriefing = async (userId = null) => {
+  try {
+    console.log('📰 Generating complete intelligence briefing...');
+
+    // Fetch latest headlines (50 articles for comprehensive analysis)
+    const allArticles = await newsService.getHeadlines(1, 50);
+
+    if (!allArticles || allArticles.length === 0) {
+      throw new Error('No articles available for briefing generation');
+    }
+
+    console.log(`✅ Fetched ${allArticles.length} articles for briefing`);
+
+    // Extract trending topics
+    const { trends } = await trendAnalysisService.getTrendingTopics();
+    const trendingTopics = trends.map(t => ({
+      name: t.name,
+      category: t.category,
+      mentions: t.mentions || 0
+    }));
+
+    // Generate briefings for each mode
+    const modes = ['Global', 'Markets', 'Tech', 'My Life'];
+    const briefings = {};
+
+    for (const mode of modes) {
+      console.log(`🤖 Generating ${mode} briefing...`);
+      const modeBriefing = await exports.generateBriefing(allArticles, mode);
+      briefings[mode.toLowerCase().replace(/ /g, '')] = modeBriefing;
+
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Determine generation time (morning or evening)
+    const now = new Date();
+    const hour = now.getHours();
+    const generationTime = hour >= 8 && hour < 20 ? 'morning' : 'evening';
+    const date = now.toISOString().split('T')[0];
+
+    // Save to database
+    const briefingDoc = new IntelligenceBriefing({
+      userId: userId,
+      date: date,
+      generationTime: generationTime,
+      global: briefings.global,
+      markets: briefings.markets,
+      tech: briefings.tech,
+      myLife: briefings.mylife,
+      trendingTopics: trendingTopics,
+      sourceHeadlines: allArticles.slice(0, 20).map(a => ({
+        title: a.title,
+        source: typeof a.source === 'string' ? a.source : (a.source?.name || 'Unknown'),
+        category: a.category || 'general',
+        publishedAt: a.publishedAt
+      })),
+      status: 'completed',
+      geminiTokensUsed: allArticles.length * 4 // Rough estimate
+    });
+
+    await briefingDoc.save();
+
+    console.log(`✅ Complete briefing generated and saved for ${generationTime} on ${date}`);
+
+    return briefingDoc;
+  } catch (error) {
+    console.error('❌ Error generating complete briefing:', error);
+
+    // Log failed attempt to database
+    const now = new Date();
+    const hour = now.getHours();
+    const generationTime = hour >= 8 && hour < 20 ? 'morning' : 'evening';
+    const date = now.toISOString().split('T')[0];
+
+    await IntelligenceBriefing.create({
+      userId: userId,
+      date: date,
+      generationTime: generationTime,
+      status: 'failed',
+      error: error.message
+    });
+
+    throw error;
+  }
+};
+
+/**
+ * Get current active briefing (fetch from DB or generate if needed)
+ * @param {string} userId - Optional user ID
+ * @param {boolean} forceRefresh - Force new generation
+ * @returns {Promise<object>} - Briefing data
+ */
+exports.getCurrentBriefing = async (userId = null, forceRefresh = false) => {
+  try {
+    // Check if we need to generate new briefing
+    const needsGen = await IntelligenceBriefing.needsGeneration(userId);
+
+    if (forceRefresh || needsGen) {
+      console.log('🔄 Generating new briefing...');
+      return await exports.generateCompleteBriefing(userId);
+    }
+
+    // Get existing briefing
+    const briefing = await IntelligenceBriefing.getCurrentBriefing(userId);
+
+    if (!briefing) {
+      console.log('⚠️  No existing briefing found, generating new one...');
+      return await exports.generateCompleteBriefing(userId);
+    }
+
+    console.log(`✅ Retrieved existing ${briefing.generationTime} briefing from ${briefing.date}`);
+    return briefing;
+
+  } catch (error) {
+    console.error('❌ Error getting current briefing:', error);
+
+    // Return generic fallback briefing
+    return {
+      global: {
+        globalSituation: 'Intelligence briefing service is temporarily unavailable.',
+        globalDelta: 'Please try refreshing in a few moments.',
+        impactOnYou: {
+          industry: 'General',
+          region: 'Global',
+          summary: 'We are working to restore the briefing service.',
+          keyPoints: [
+            'Intelligence briefing generation failed',
+            'Please check back in a few minutes',
+            'You can still browse individual articles below'
+          ]
+        }
+      },
+      markets: null,
+      tech: null,
+      myLife: null,
+      trendingTopics: [],
+      status: 'failed',
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Format briefing for frontend consumption
+ * @param {object} briefingDoc - MongoDB briefing document
+ * @returns {object} - Formatted briefing
+ */
+exports.formatBriefing = (briefingDoc) => {
+  if (!briefingDoc) return null;
+
+  return {
+    id: briefingDoc._id,
+    generatedAt: briefingDoc.generatedAt,
+    generationTime: briefingDoc.generationTime,
+    date: briefingDoc.date,
+    global: briefingDoc.global,
+    markets: briefingDoc.markets,
+    tech: briefingDoc.tech,
+    myLife: briefingDoc.myLife,
+    trendingTopics: briefingDoc.trendingTopics || [],
+    status: briefingDoc.status,
+    lastUpdated: briefingDoc.updatedAt
+  };
 };

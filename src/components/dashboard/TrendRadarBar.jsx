@@ -40,8 +40,8 @@ const TrendRadarBar = ({ trends = [], onTopicClick, marketData = {} }) => {
   // Get color based on intensity
   const getColor = (change) => {
     const absChange = Math.abs(change);
-    if (absChange >= 200) return 'from-pink-500 to-purple-500';
-    if (absChange >= 150) return 'from-purple-500 to-blue-500';
+    if (absChange >= 200) return 'from-pink-500 to-sky-500';
+    if (absChange >= 150) return 'from-sky-500 to-blue-500';
     if (absChange >= 100) return 'from-blue-500 to-cyan-500';
     if (absChange >= 50) return 'from-cyan-500 to-teal-500';
     return 'from-teal-500 to-green-500';
@@ -173,7 +173,7 @@ const TrendRadarBar = ({ trends = [], onTopicClick, marketData = {} }) => {
           })}
 
           {/* Market Data Indicators */}
-          <div className="flex-shrink-0 flex items-center gap-4 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+          <div className="flex-shrink-0 flex items-center gap-4 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500/10 to-sky-500/10 border border-blue-500/20">
             {/* S&P 500 */}
             <div className="flex items-center gap-2">
               <FiTrendingUp className="w-4 h-4 text-blue-600" />
@@ -200,7 +200,7 @@ const TrendRadarBar = ({ trends = [], onTopicClick, marketData = {} }) => {
 
             {/* VIX */}
             <div className="flex items-center gap-2">
-              <FiActivity className="w-4 h-4 text-purple-600" />
+              <FiActivity className="w-4 h-4 text-sky-600" />
               <div className="text-xs">
                 <span className="font-semibold text-text-dark">VIX:</span>
                 <span className="ml-1 text-text-dark">{market.vix.value}</span>

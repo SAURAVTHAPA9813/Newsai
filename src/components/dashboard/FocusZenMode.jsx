@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { FiX, FiVolume2, FiVolumeX, FiClock, FiBookmark, FiUser, FiBookOpen, FiShare2, FiTwitter, FiFacebook, FiLinkedin, FiMail, FiLink } from 'react-icons/fi';
+import { FiX, FiVolume2, FiVolumeX, FiClock, FiBookmark, FiUser, FiBookOpen, FiShare2, FiTwitter, FiFacebook, FiLinkedin, FiMail, FiLink, FiExternalLink, FiStar } from 'react-icons/fi';
 import React from 'react';
 
 const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
@@ -190,6 +190,32 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
               <FiBookmark className={`w-5 h-5 ${isSaved ? 'fill-brand-blue text-brand-blue' : 'text-gray-700'}`} />
             </button>
 
+            {/* Read Article Button */}
+            {article.url && (
+              <button
+                onClick={() => window.open(article.url, '_blank', 'noopener,noreferrer')}
+                className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                aria-label="Read full article at source"
+              >
+                <FiExternalLink className="w-4 h-4 text-gray-700" />
+                <span className="text-sm font-medium text-gray-700">Read Article</span>
+              </button>
+            )}
+
+            {/* Upgrade Plan Button */}
+            <button
+              onClick={() => {
+                // TODO: Implement upgrade modal or redirect
+                console.log('Upgrade Plan clicked');
+                alert('Upgrade to Pro for unlimited AI features, ad-free reading, and exclusive content!');
+              }}
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm flex items-center gap-2"
+              aria-label="Upgrade to premium plan"
+            >
+              <FiStar className="w-4 h-4 text-white" />
+              <span className="text-sm font-semibold text-white">Upgrade Plan</span>
+            </button>
+
             {/* Close Button */}
             <button
               onClick={onClose}
@@ -209,29 +235,39 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
         style={{ scrollBehavior: 'smooth' }}
       >
         <div className="max-w-4xl mx-auto px-8 py-16">
-          {/* Article Header */}
-          <header className="mb-12">
-            {/* Category Badge */}
-            <div className="mb-6">
-              <span className="inline-block px-4 py-1 bg-brand-blue/10 text-brand-blue text-sm font-bold uppercase tracking-wider rounded">
-                {article.category}
-              </span>
-            </div>
+          {/* Category Badge */}
+          <div className="mb-6">
+            <span className="inline-block px-4 py-1 bg-brand-blue/10 text-brand-blue text-sm font-bold uppercase tracking-wider rounded">
+              {article.category}
+            </span>
+          </div>
 
+          {/* Hero Image */}
+          {article.imageUrl && (
+            <figure className="mb-8 -mx-8">
+              <div className="relative w-full aspect-[16/9] overflow-hidden bg-gray-100">
+                <img
+                  src={article.imageUrl}
+                  alt={article.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
+            </figure>
+          )}
+
+          {/* Article Header - Now Below Image */}
+          <header className="mb-12 px-0">
             {/* Title */}
-            <h1 className="font-serif text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
+            <h1 className="font-serif text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6">
               {article.title}
             </h1>
 
-            {/* Subtitle/Deck (if available) */}
-            {article.subtitle && (
-              <p className="text-2xl text-gray-600 font-serif leading-relaxed mb-8">
-                {article.subtitle}
-              </p>
-            )}
-
             {/* Byline */}
-            <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 border-t border-b border-gray-200 py-4">
+            <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 border-b border-gray-200 pb-4 mb-8">
               <div className="flex items-center gap-2">
                 <FiUser className="w-4 h-4" />
                 <span className="font-semibold text-gray-900">
@@ -249,59 +285,114 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
             </div>
           </header>
 
-          {/* Hero Image */}
-          {article.imageUrl && (
-            <figure className="mb-12 -mx-8">
-              <div className="relative w-full aspect-[16/9] overflow-hidden bg-gray-100">
-                <img
-                  src={article.imageUrl}
-                  alt={article.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-              </div>
-              {article.imageCaption && (
-                <figcaption className="mt-3 px-8 text-sm text-gray-500">
-                  <span className="italic">{article.imageCaption}</span>
-                  {article.imageCredit && (
-                    <span className="ml-2">Photo: {article.imageCredit}</span>
-                  )}
-                </figcaption>
-              )}
-            </figure>
-          )}
-
-          {/* Article Content */}
-          <article className={`prose prose-lg max-w-none ${fontSizeClasses[fontSize]}`}>
-            {/* Drop cap for first paragraph */}
-            <p className="first-letter:text-7xl first-letter:font-bold first-letter:text-gray-900 first-letter:mr-3 first-letter:float-left first-letter:leading-none text-gray-800 leading-relaxed mb-6">
-              {article.currentSummary}
+          {/* Article Preview - Short 3-4 Line Summary */}
+          <article className={`prose prose-lg max-w-none ${fontSizeClasses[fontSize]} mb-12`}>
+            <p className="text-gray-700 leading-relaxed text-lg">
+              {article.description || article.currentSummary?.substring(0, 300) + '...'}
             </p>
-
-            {/* Additional paragraphs (if available from API) */}
-            {article.content?.paragraphs?.map((paragraph, idx) => (
-              <p key={idx} className="mb-6 text-gray-800 leading-relaxed">
-                {paragraph}
-              </p>
-            ))}
-
-            {/* Pull Quote (if available) */}
-            {article.pullQuote && (
-              <blockquote className="my-12 pl-8 border-l-4 border-brand-blue">
-                <p className="text-2xl font-serif italic text-gray-700 mb-2">
-                  "{article.pullQuote.text}"
-                </p>
-                {article.pullQuote.attribution && (
-                  <footer className="text-sm text-gray-500">
-                    — {article.pullQuote.attribution}
-                  </footer>
-                )}
-              </blockquote>
-            )}
           </article>
+
+          {/* Premium Subscription Paywall */}
+          <div className="my-16 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-2xl p-10 text-center shadow-lg">
+            <div className="max-w-2xl mx-auto">
+              {/* Lock Icon */}
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-brand-blue to-blue-600 rounded-full mb-6">
+                <FiStar className="w-8 h-8 text-white" />
+              </div>
+
+              {/* Headline */}
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Continue Reading with NewsAI Pro
+              </h2>
+
+              {/* Subheadline */}
+              <p className="text-lg text-gray-600 mb-8">
+                Get unlimited access to in-depth analysis, AI-powered insights, and ad-free reading experience.
+              </p>
+
+              {/* Benefits List */}
+              <div className="grid md:grid-cols-3 gap-6 mb-8 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Unlimited Articles</p>
+                    <p className="text-sm text-gray-600">Read as much as you want</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">AI Analysis</p>
+                    <p className="text-sm text-gray-600">Deep insights & context</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Ad-Free</p>
+                    <p className="text-sm text-gray-600">Distraction-free reading</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <button
+                  onClick={() => {
+                    // TODO: Implement subscription flow
+                    alert('Redirecting to subscription page...\n\nPro Plan: $9.99/month\n✓ Unlimited articles\n✓ AI-powered insights\n✓ Ad-free experience\n✓ Offline reading\n✓ Priority support');
+                  }}
+                  className="px-8 py-4 bg-gradient-to-r from-brand-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  Subscribe for $9.99/month
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Show login modal
+                    alert('Already a subscriber? Sign in to continue reading.');
+                  }}
+                  className="px-8 py-4 bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold rounded-lg transition-all"
+                >
+                  Sign In
+                </button>
+              </div>
+
+              {/* Fine Print */}
+              <p className="text-xs text-gray-500 mt-6">
+                Cancel anytime. First 7 days free for new subscribers.
+              </p>
+            </div>
+          </div>
+
+          {/* Read Full Article Button */}
+          {article.url && (
+            <div className="my-12 text-center">
+              <button
+                onClick={() => window.open(article.url, '_blank', 'noopener,noreferrer')}
+                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-800 hover:from-gray-800 hover:to-gray-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+              >
+                <FiExternalLink className="w-5 h-5" />
+                <span>Read Full Article at {article.source?.name || 'Source'}</span>
+              </button>
+              <p className="text-sm text-gray-500 mt-3">
+                Opens original article in a new tab
+              </p>
+            </div>
+          )}
 
           {/* Related Articles */}
           {relatedArticles && relatedArticles.length > 0 && (

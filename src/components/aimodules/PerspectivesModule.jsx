@@ -1,23 +1,36 @@
 import { useState, useEffect } from 'react';
 import { FiX, FiLoader, FiShuffle, FiCheckCircle } from 'react-icons/fi';
-import mockDashboardAPI from '../../services/mockDashboardAPI';
+import aiAPI from '../../services/aiAPI';
 
-const PerspectivesModule = ({ articleId, onClose }) => {
+const PerspectivesModule = ({ article, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
-    loadPerspectives();
-  }, [articleId]);
+    if (article) {
+      loadPerspectives();
+    }
+  }, [article]);
 
   const loadPerspectives = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const result = await mockDashboardAPI.getPerspectives(articleId);
-      setData(result);
+      const result = await aiAPI.getPerspectives({
+        title: article.title,
+        description: article.summary?.['15m'] || article.description,
+      });
+
+      if (result.success) {
+        setData(result.data);
+      } else {
+        setError('Failed to analyze perspectives');
+      }
     } catch (error) {
       console.error('Error loading perspectives:', error);
+      setError(error.message || 'Failed to load perspectives');
     } finally {
       setLoading(false);
     }
@@ -35,7 +48,7 @@ const PerspectivesModule = ({ articleId, onClose }) => {
   if (!data) return null;
 
   const colors = [
-    'from-purple-500 to-purple-600',
+    'from-sky-500 to-sky-600',
     'from-pink-500 to-pink-600',
     'from-blue-500 to-blue-600',
     'from-green-500 to-green-600'
@@ -46,7 +59,7 @@ const PerspectivesModule = ({ articleId, onClose }) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/40">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-pink-500 flex items-center justify-center">
             <FiShuffle className="text-white" />
           </div>
           <div>

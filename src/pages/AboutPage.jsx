@@ -64,7 +64,7 @@ const AboutPage = () => {
       title: 'Phone',
       primary: '+1 (555) 123-4567',
       secondary: 'Mon-Fri 9AM-6PM PST',
-      color: 'from-purple-500 to-purple-600'
+      color: 'from-sky-500 to-sky-600'
     },
     {
       icon: FiMapPin,
@@ -169,8 +169,8 @@ const AboutPage = () => {
                 transition={{ delay: 0.9, duration: 0.5 }}
                 className="flex gap-4 pt-4"
               >
-                <div className="h-1 w-32 bg-gradient-to-r from-brand-blue to-purple-500 rounded-full"></div>
-                <div className="h-1 w-24 bg-gradient-to-r from-purple-500 to-blue-400 rounded-full"></div>
+                <div className="h-1 w-32 bg-gradient-to-r from-brand-blue to-sky-500 rounded-full"></div>
+                <div className="h-1 w-24 bg-gradient-to-r from-sky-500 to-blue-400 rounded-full"></div>
                 <div className="h-1 w-16 bg-gradient-to-r from-blue-400 to-brand-blue rounded-full"></div>
               </motion.div>
             </motion.div>
@@ -200,7 +200,7 @@ const AboutPage = () => {
                 />
                 {/* Subtle rings around image */}
                 <div className="absolute inset-0 rounded-full border-2 border-brand-blue/20 animate-ping"></div>
-                <div className="absolute inset-0 rounded-full border-2 border-purple-500/20 animate-pulse"></div>
+                <div className="absolute inset-0 rounded-full border-2 border-sky-500/20 animate-pulse"></div>
               </motion.div>
             </motion.div>
           </div>
@@ -434,7 +434,7 @@ const AboutPage = () => {
                         whileInView={{ width: `${step.progress}%` }}
                         viewport={{ once: true }}
                         transition={{ delay: index * 0.2 + 0.5, duration: 1 }}
-                        className="h-full bg-gradient-to-r from-brand-blue to-purple-500 shadow-lg"
+                        className="h-full bg-gradient-to-r from-brand-blue to-sky-500 shadow-lg"
                       />
                     </div>
                   </div>
@@ -491,7 +491,7 @@ const AboutPage = () => {
                   </p>
 
                   {/* Hover gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/10 to-sky-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </motion.div>
               )
             })}
@@ -677,12 +677,12 @@ const AboutPage = () => {
             repeat: Infinity,
             ease: 'linear'
           }}
-          className="absolute bottom-10 left-10 w-40 h-40 bg-gradient-to-br from-purple-200/10 to-blue-400/10 rounded-full blur-2xl"
+          className="absolute bottom-10 left-10 w-40 h-40 bg-gradient-to-br from-sky-200/10 to-blue-400/10 rounded-full blur-2xl"
         />
       </section>
 
       {/* Footer accent */}
-      <div className="h-1 bg-gradient-to-r from-brand-blue via-purple-200 to-blue-400"></div>
+      <div className="h-1 bg-gradient-to-r from-brand-blue via-sky-200 to-blue-400"></div>
     </div>
   )
 }

@@ -1,22 +1,35 @@
 import { useState, useEffect } from 'react';
 import { FiX, FiLoader, FiBookOpen, FiCircle } from 'react-icons/fi';
-import mockDashboardAPI from '../../services/mockDashboardAPI';
+import aiAPI from '../../services/aiAPI';
 
-const ContextTimelineModule = ({ articleId, onClose }) => {
+const ContextTimelineModule = ({ article, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadContext();
-  }, [articleId]);
+    if (article) {
+      loadContext();
+    }
+  }, [article]);
 
   const loadContext = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const result = await mockDashboardAPI.getContext(articleId);
-      setData(result);
+      const result = await aiAPI.getHistoricalContext({
+        title: article.title,
+        description: article.summary?.['15m'] || article.description,
+      });
+
+      if (result.success) {
+        setData(result.data);
+      } else {
+        setError('Failed to load context');
+      }
     } catch (error) {
       console.error('Error loading context:', error);
+      setError(error.message || 'Failed to load context');
     } finally {
       setLoading(false);
     }

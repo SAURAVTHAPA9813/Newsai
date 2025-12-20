@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   FiHome,
   FiShield,
@@ -7,59 +7,61 @@ import {
   FiBarChart2,
   FiTrendingUp,
   FiChevronLeft,
-  FiChevronRight
-} from 'react-icons/fi';
-import { useLocation } from 'react-router-dom';
-import SidebarNavItem from './SidebarNavItem';
-import UserProfileDock from './UserProfileDock';
-import Icon from '../common/Icon';
+  FiChevronRight,
+  FiLock,
+} from "react-icons/fi";
+import { useLocation } from "react-router-dom";
+import SidebarNavItem from "./SidebarNavItem";
+import UserProfileDock from "./UserProfileDock";
+import Icon from "../common/Icon";
 
 const GlassSidebar = ({ collapsed, onToggle }) => {
   const location = useLocation();
 
   const navItems = [
     {
-      name: 'Control Center',
-      path: '/dashboard',
+      name: "Control Center",
+      path: "/dashboard",
       icon: FiHome,
-      description: 'Main dashboard feed'
+      description: "Main dashboard feed",
     },
     {
-      name: 'Verify Hub',
-      path: '/verify-hub',
-      icon: FiShield,
-      description: 'Fact-checking engine'
-    },
-    {
-      name: 'Topic Matrix',
-      path: '/topic-matrix',
-      icon: FiGrid,
-      description: 'Configuration settings'
-    },
-    {
-      name: 'IQ Lab',
-      path: '/iq-lab',
-      icon: FiCpu,
-      description: 'Gamified learning center'
-    },
-    {
-      name: 'Neural Analytics',
-      path: '/neural-analytics',
-      icon: FiBarChart2,
-      description: 'Data visualization'
-    },
-    {
-      name: 'Trending',
-      path: '/trending',
+      name: "Trending",
+      path: "/trending",
       icon: FiTrendingUp,
-      description: 'Trending news'
-    }
+      description: "Trending news",
+    },
+    {
+      name: "Verify Hub",
+      path: "/verify-hub",
+      icon: FiShield,
+      description: "Fact-checking engine",
+    },
+    {
+      name: "IQ Lab",
+      path: "/iq-lab",
+      icon: FiCpu,
+      description: "Gamified learning center",
+    },
+    {
+      name: "Neural Analytics",
+      path: "/neural-analytics",
+      icon: FiBarChart2,
+      description: "Data visualization",
+    },
+    {
+      name: "Topic Matrix",
+      path: "/topic-matrix",
+      icon: FiGrid,
+      description: "Coming Soon",
+      locked: true,
+    },
   ];
 
   return (
     <aside
       className={`fixed left-0 top-0 h-screen z-50 transition-all duration-300 glassmorphism-radial border-r border-serenity-gray-lightest/50 shadow-soft ${
-        collapsed ? 'w-20' : 'w-72'
+        collapsed ? "w-20" : "w-72"
       }`}
     >
       <div className="flex flex-col h-full">
@@ -74,7 +76,6 @@ const GlassSidebar = ({ collapsed, onToggle }) => {
                 <h1 className="font-bold text-lg text-gradient-serenity tracking-wide">
                   NEWS AI
                 </h1>
-               
               </div>
             </div>
           )}
@@ -90,7 +91,7 @@ const GlassSidebar = ({ collapsed, onToggle }) => {
         <button
           onClick={onToggle}
           className="absolute -right-3 top-20 w-6 h-6 bg-white border border-serenity-royal/20 rounded-full flex items-center justify-center hover:bg-serenity-royal hover:text-white transition-all duration-300 shadow-md z-10 hover-serenity-glow"
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!collapsed}
         >
           <Icon

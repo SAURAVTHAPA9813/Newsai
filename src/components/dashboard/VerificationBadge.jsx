@@ -3,8 +3,22 @@ import Icon from '../common/Icon';
 
 const VerificationBadge = ({ status }) => {
   const getbadgeConfig = () => {
-    switch (status) {
-      case 'VERIFIED':
+    // Normalize status to lowercase for comparison
+    const normalizedStatus = status?.toLowerCase();
+
+    switch (normalizedStatus) {
+      case 'cross-verified':
+        return {
+          icon: FiCheckCircle,
+          iconColor: 'verified',
+          label: 'CROSS-VERIFIED',
+          bgColor: 'bg-emerald-500/20',
+          borderColor: 'border-emerald-500/30',
+          textColor: 'text-emerald-700',
+          glowColor: 'shadow-emerald-500/25',
+          description: 'Tier 1 source: Reuters, AP, BBC, NYT, WSJ, Bloomberg'
+        };
+      case 'verified':
         return {
           icon: FiCheckCircle,
           iconColor: 'verified',
@@ -12,9 +26,33 @@ const VerificationBadge = ({ status }) => {
           bgColor: 'bg-green-500/20',
           borderColor: 'border-green-500/30',
           textColor: 'text-green-700',
-          description: 'Corroborated by multiple trusted sources'
+          glowColor: 'shadow-green-500/25',
+          description: 'Tier 2 source: CNN, Forbes, TechCrunch, NBC, CBS'
         };
-      case 'LIKELY_TRUE':
+      case 'reviewing':
+        return {
+          icon: FiAlertCircle,
+          iconColor: 'likely',
+          label: 'REVIEWING',
+          bgColor: 'bg-yellow-500/20',
+          borderColor: 'border-yellow-500/30',
+          textColor: 'text-yellow-700',
+          glowColor: 'shadow-yellow-500/25',
+          description: 'Tier 3 source: Moderate credibility, fact-checking in progress'
+        };
+      case 'unverified':
+        return {
+          icon: FiAlertCircle,
+          iconColor: 'unverified',
+          label: 'UNVERIFIED',
+          bgColor: 'bg-orange-500/20',
+          borderColor: 'border-orange-500/40',
+          textColor: 'text-orange-700',
+          glowColor: 'shadow-orange-500/30',
+          description: 'Unknown source or low credibility'
+        };
+      // Legacy support for old status values
+      case 'likely_true':
         return {
           icon: FiCheckCircle,
           iconColor: 'likely',
@@ -24,7 +62,7 @@ const VerificationBadge = ({ status }) => {
           textColor: 'text-cyan-700',
           description: 'High confidence from trusted source'
         };
-      case 'MISLEADING':
+      case 'misleading':
         return {
           icon: FiXCircle,
           iconColor: 'misleading',
@@ -38,11 +76,11 @@ const VerificationBadge = ({ status }) => {
         return {
           icon: FiAlertCircle,
           iconColor: 'unverified',
-          label: 'UNVERIFIED',
-          bgColor: 'bg-gray-500/20',
-          borderColor: 'border-gray-500/30',
-          textColor: 'text-gray-700',
-          description: 'Verification pending'
+          label: 'UNKNOWN',
+          bgColor: 'bg-gray-400/20',
+          borderColor: 'border-gray-400/30',
+          textColor: 'text-gray-600',
+          description: 'Verification status unavailable'
         };
     }
   };
@@ -56,7 +94,7 @@ const VerificationBadge = ({ status }) => {
       aria-label={`${config.label}: ${config.description}`}
     >
       <div
-        className={`inline-flex items-center gap-2 px-3 py-1.5 ${config.bgColor} ${config.borderColor} border backdrop-blur-md rounded-full`}
+        className={`inline-flex items-center gap-2 px-3 py-1.5 ${config.bgColor} ${config.borderColor} border backdrop-blur-md rounded-full ${config.glowColor ? `shadow-lg ${config.glowColor}` : ''}`}
       >
         <Icon
           icon={config.icon}
