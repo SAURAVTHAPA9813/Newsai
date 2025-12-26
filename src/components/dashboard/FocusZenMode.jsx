@@ -1,25 +1,83 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { FiX, FiVolume2, FiVolumeX, FiClock, FiBookmark, FiUser, FiBookOpen, FiShare2, FiTwitter, FiFacebook, FiLinkedin, FiMail, FiLink, FiExternalLink, FiStar } from 'react-icons/fi';
-import React from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  FiX,
+  FiVolume2,
+  FiVolumeX,
+  FiClock,
+  FiBookmark,
+  FiUser,
+  FiBookOpen,
+  FiShare2,
+  FiTwitter,
+  FiFacebook,
+  FiLinkedin,
+  FiMail,
+  FiLink,
+  FiExternalLink,
+  FiStar,
+} from "react-icons/fi";
+import React from "react";
+import userAPI from "../../services/userAPI";
 
 const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
-  const [fontSize, setFontSize] = useState('normal');
+  const [fontSize, setFontSize] = useState("normal");
   const [copiedLink, setCopiedLink] = useState(false);
 
   const scrollContainerRef = useRef(null);
   const utteranceRef = useRef(null);
 
-  // Optimized Text-to-Speech with proper pause/resume
+  // Reset utterance when article changes
+  useEffect(() => {
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    utteranceRef.current = null;
+    setIsPlaying(false);
+  }, [article]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  // Check if article is saved when component mounts or article changes
+  useEffect(() => {
+    const checkSavedStatus = async () => {
+      if (!article || !article.url) return;
+
+      try {
+        const response = await userAPI.checkSavedStatus(article.url);
+        if (response.success) {
+          setIsSaved(response.isSaved);
+        }
+      } catch (error) {
+        console.error("Error checking saved status:", error);
+        // Silently fail - user can still try to save
+      }
+    };
+
+    checkSavedStatus();
+  }, [article]);
+
+  // Optimized Text-to-Speech with proper pause/resume - reads title + preview
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
       window.speechSynthesis.pause();
       setIsPlaying(false);
     } else {
       if (!utteranceRef.current) {
-        utteranceRef.current = new SpeechSynthesisUtterance(article.currentSummary);
+        // Combine title and preview paragraph for reading
+        const previewText =
+          article.description ||
+          article.currentSummary?.substring(0, 300) + "...";
+        const fullText = `${article.title}. ${previewText}`;
+
+        utteranceRef.current = new SpeechSynthesisUtterance(fullText);
         utteranceRef.current.rate = 0.9;
         utteranceRef.current.pitch = 1;
         utteranceRef.current.volume = 1;
@@ -29,59 +87,111 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
       window.speechSynthesis.speak(utteranceRef.current);
       setIsPlaying(true);
     }
-  }, [isPlaying, article.currentSummary]);
+  }, [isPlaying, article]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis.cancel();
-    };
-  }, []);
+  const handleSave = async () => {
+    if (isSaving) return; // Prevent double-clicks
 
-  const handleSave = () => {
-    setIsSaved(!isSaved);
+    setIsSaving(true);
+
+    try {
+      if (isSaved) {
+        // Unsave the article
+        const response = await userAPI.unsaveArticle(article.url);
+        if (response.success) {
+          setIsSaved(false);
+          console.log("✅ Article unsaved successfully");
+        }
+      } else {
+        // Save the article
+        const articleData = {
+          title: article.title,
+          description: article.description || article.currentSummary,
+          url: article.url,
+          imageUrl: article.imageUrl,
+          source: article.source,
+          category: article.category || "general",
+          publishedAt: article.publishedAt,
+          author: article.author,
+          content: article.content,
+        };
+
+        const response = await userAPI.saveArticle(articleData);
+        if (response.success) {
+          setIsSaved(true);
+          console.log("✅ Article saved successfully");
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error saving/unsaving article:", error);
+      // Optionally show error message to user
+      alert(
+        isSaved
+          ? "Failed to remove article from saved items. Please try again."
+          : "Failed to save article. Please try again."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Share functionality
   const shareOptions = [
     {
-      name: 'Twitter',
+      name: "Twitter",
       icon: FiTwitter,
       onClick: () => {
         const text = `${article.title} - via NewsAI`;
         const url = window.location.href;
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+        window.open(
+          `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+            text
+          )}&url=${encodeURIComponent(url)}`,
+          "_blank"
+        );
         setShowShareMenu(false);
-      }
+      },
     },
     {
-      name: 'Facebook',
+      name: "Facebook",
       icon: FiFacebook,
       onClick: () => {
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+        window.open(
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+            window.location.href
+          )}`,
+          "_blank"
+        );
         setShowShareMenu(false);
-      }
+      },
     },
     {
-      name: 'LinkedIn',
+      name: "LinkedIn",
       icon: FiLinkedin,
       onClick: () => {
-        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`, '_blank');
+        window.open(
+          `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+            window.location.href
+          )}`,
+          "_blank"
+        );
         setShowShareMenu(false);
-      }
+      },
     },
     {
-      name: 'Email',
+      name: "Email",
       icon: FiMail,
       onClick: () => {
         const subject = encodeURIComponent(article.title);
-        const body = encodeURIComponent(`Check out this article: ${article.title}\n\n${window.location.href}`);
+        const body = encodeURIComponent(
+          `Check out this article: ${article.title}\n\n${window.location.href}`
+        );
         window.location.href = `mailto:?subject=${subject}&body=${body}`;
         setShowShareMenu(false);
-      }
+      },
     },
     {
-      name: 'Copy Link',
+      name: "Copy Link",
       icon: FiLink,
       onClick: () => {
         navigator.clipboard.writeText(window.location.href);
@@ -90,20 +200,19 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
           setCopiedLink(false);
           setShowShareMenu(false);
         }, 2000);
-      }
-    }
+      },
+    },
   ];
 
   // Font size classes
   const fontSizeClasses = {
-    small: 'text-base',
-    normal: 'text-lg',
-    large: 'text-xl'
+    small: "text-base",
+    normal: "text-lg",
+    large: "text-xl",
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-white overflow-hidden">
-
       {/* Sticky Header with Actions */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-gray-200 px-8 py-4 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -118,25 +227,31 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
             {/* Font Size Controls */}
             <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-lg">
               <button
-                onClick={() => setFontSize('small')}
+                onClick={() => setFontSize("small")}
                 className={`px-2 py-1 rounded text-xs font-semibold transition-colors ${
-                  fontSize === 'small' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  fontSize === "small"
+                    ? "bg-white text-brand-blue shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
               >
                 A
               </button>
               <button
-                onClick={() => setFontSize('normal')}
+                onClick={() => setFontSize("normal")}
                 className={`px-2 py-1 rounded text-sm font-semibold transition-colors ${
-                  fontSize === 'normal' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  fontSize === "normal"
+                    ? "bg-white text-brand-blue shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
               >
                 A
               </button>
               <button
-                onClick={() => setFontSize('large')}
+                onClick={() => setFontSize("large")}
                 className={`px-2 py-1 rounded text-base font-semibold transition-colors ${
-                  fontSize === 'large' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  fontSize === "large"
+                    ? "bg-white text-brand-blue shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
               >
                 A
@@ -147,9 +262,13 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
             <button
               onClick={handlePlayPause}
               className="p-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
-              aria-label={isPlaying ? 'Stop reading' : 'Listen to article'}
+              aria-label={isPlaying ? "Stop reading" : "Listen to article"}
             >
-              {isPlaying ? <FiVolumeX className="w-5 h-5 text-gray-700" /> : <FiVolume2 className="w-5 h-5 text-gray-700" />}
+              {isPlaying ? (
+                <FiVolumeX className="w-5 h-5 text-gray-700" />
+              ) : (
+                <FiVolume2 className="w-5 h-5 text-gray-700" />
+              )}
             </button>
 
             {/* Share Button with Dropdown */}
@@ -171,11 +290,15 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
                       className="flex items-center gap-3 w-full px-4 py-2 hover:bg-gray-100 transition-colors text-left"
                     >
                       <option.icon className="w-4 h-4 text-gray-600" />
-                      <span className="text-sm text-gray-700">{option.name}</span>
+                      <span className="text-sm text-gray-700">
+                        {option.name}
+                      </span>
                     </button>
                   ))}
                   {copiedLink && (
-                    <div className="px-4 py-2 text-xs text-green-600 font-medium">Link copied!</div>
+                    <div className="px-4 py-2 text-xs text-green-600 font-medium">
+                      Link copied!
+                    </div>
                   )}
                 </div>
               )}
@@ -184,36 +307,24 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
             {/* Save Button */}
             <button
               onClick={handleSave}
-              className="p-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
-              aria-label={isSaved ? 'Remove bookmark' : 'Save article'}
+              disabled={isSaving}
+              className={`p-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 transition-colors ${
+                isSaving ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              aria-label={isSaved ? "Remove bookmark" : "Save article"}
+              title={
+                isSaving
+                  ? "Saving..."
+                  : isSaved
+                  ? "Remove from saved articles"
+                  : "Save article"
+              }
             >
-              <FiBookmark className={`w-5 h-5 ${isSaved ? 'fill-brand-blue text-brand-blue' : 'text-gray-700'}`} />
-            </button>
-
-            {/* Read Article Button */}
-            {article.url && (
-              <button
-                onClick={() => window.open(article.url, '_blank', 'noopener,noreferrer')}
-                className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-2"
-                aria-label="Read full article at source"
-              >
-                <FiExternalLink className="w-4 h-4 text-gray-700" />
-                <span className="text-sm font-medium text-gray-700">Read Article</span>
-              </button>
-            )}
-
-            {/* Upgrade Plan Button */}
-            <button
-              onClick={() => {
-                // TODO: Implement upgrade modal or redirect
-                console.log('Upgrade Plan clicked');
-                alert('Upgrade to Pro for unlimited AI features, ad-free reading, and exclusive content!');
-              }}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm flex items-center gap-2"
-              aria-label="Upgrade to premium plan"
-            >
-              <FiStar className="w-4 h-4 text-white" />
-              <span className="text-sm font-semibold text-white">Upgrade Plan</span>
+              <FiBookmark
+                className={`w-5 h-5 ${
+                  isSaved ? "fill-brand-blue text-brand-blue" : "text-gray-700"
+                } ${isSaving ? "animate-pulse" : ""}`}
+              />
             </button>
 
             {/* Close Button */}
@@ -232,7 +343,7 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
       <div
         ref={scrollContainerRef}
         className="h-full overflow-y-auto"
-        style={{ scrollBehavior: 'smooth' }}
+        style={{ scrollBehavior: "smooth" }}
       >
         <div className="max-w-4xl mx-auto px-8 py-16">
           {/* Category Badge */}
@@ -242,25 +353,8 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
             </span>
           </div>
 
-          {/* Hero Image */}
-          {article.imageUrl && (
-            <figure className="mb-8 -mx-8">
-              <div className="relative w-full aspect-[16/9] overflow-hidden bg-gray-100">
-                <img
-                  src={article.imageUrl}
-                  alt={article.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-              </div>
-            </figure>
-          )}
-
-          {/* Article Header - Now Below Image */}
-          <header className="mb-12 px-0">
+          {/* Article Header - Title First */}
+          <header className="mb-8 px-0">
             {/* Title */}
             <h1 className="font-serif text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6">
               {article.title}
@@ -285,10 +379,30 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
             </div>
           </header>
 
+          {/* Hero Image - After Title */}
+          {article.imageUrl && (
+            <figure className="mb-8 -mx-8">
+              <div className="relative w-full aspect-[16/9] overflow-hidden bg-gray-100">
+                <img
+                  src={article.imageUrl}
+                  alt={article.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                  }}
+                />
+              </div>
+            </figure>
+          )}
+
           {/* Article Preview - Short 3-4 Line Summary */}
-          <article className={`prose prose-lg max-w-none ${fontSizeClasses[fontSize]} mb-12`}>
+          <article
+            className={`prose prose-lg max-w-none ${fontSizeClasses[fontSize]} mb-12`}
+          >
             <p className="text-gray-700 leading-relaxed text-lg">
-              {article.description || article.currentSummary?.substring(0, 300) + '...'}
+              {article.description ||
+                article.currentSummary?.substring(0, 300) + "..."}
             </p>
           </article>
 
@@ -307,44 +421,77 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
 
               {/* Subheadline */}
               <p className="text-lg text-gray-600 mb-8">
-                Get unlimited access to in-depth analysis, AI-powered insights, and ad-free reading experience.
+                Get unlimited access to in-depth analysis, AI-powered insights,
+                and ad-free reading experience.
               </p>
 
               {/* Benefits List */}
               <div className="grid md:grid-cols-3 gap-6 mb-8 text-left">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    <svg
+                      className="w-4 h-4 text-green-600"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Unlimited Articles</p>
-                    <p className="text-sm text-gray-600">Read as much as you want</p>
+                    <p className="font-semibold text-gray-900">
+                      Unlimited Articles
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Read as much as you want
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    <svg
+                      className="w-4 h-4 text-green-600"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900">AI Analysis</p>
-                    <p className="text-sm text-gray-600">Deep insights & context</p>
+                    <p className="text-sm text-gray-600">
+                      Deep insights & context
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    <svg
+                      className="w-4 h-4 text-green-600"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900">Ad-Free</p>
-                    <p className="text-sm text-gray-600">Distraction-free reading</p>
+                    <p className="text-sm text-gray-600">
+                      Distraction-free reading
+                    </p>
                   </div>
                 </div>
               </div>
@@ -354,7 +501,9 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
                 <button
                   onClick={() => {
                     // TODO: Implement subscription flow
-                    alert('Redirecting to subscription page...\n\nPro Plan: $9.99/month\n✓ Unlimited articles\n✓ AI-powered insights\n✓ Ad-free experience\n✓ Offline reading\n✓ Priority support');
+                    alert(
+                      "Redirecting to subscription page...\n\nPro Plan: $9.99/month\n✓ Unlimited articles\n✓ AI-powered insights\n✓ Ad-free experience\n✓ Offline reading\n✓ Priority support"
+                    );
                   }}
                   className="px-8 py-4 bg-gradient-to-r from-brand-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
                 >
@@ -363,7 +512,7 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
                 <button
                   onClick={() => {
                     // TODO: Show login modal
-                    alert('Already a subscriber? Sign in to continue reading.');
+                    alert("Already a subscriber? Sign in to continue reading.");
                   }}
                   className="px-8 py-4 bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold rounded-lg transition-all"
                 >
@@ -382,11 +531,15 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
           {article.url && (
             <div className="my-12 text-center">
               <button
-                onClick={() => window.open(article.url, '_blank', 'noopener,noreferrer')}
+                onClick={() =>
+                  window.open(article.url, "_blank", "noopener,noreferrer")
+                }
                 className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-800 hover:from-gray-800 hover:to-gray-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
               >
                 <FiExternalLink className="w-5 h-5" />
-                <span>Read Full Article at {article.source?.name || 'Source'}</span>
+                <span>
+                  Read Full Article at {article.source?.name || "Source"}
+                </span>
               </button>
               <p className="text-sm text-gray-500 mt-3">
                 Opens original article in a new tab
@@ -397,7 +550,9 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
           {/* Related Articles */}
           {relatedArticles && relatedArticles.length > 0 && (
             <footer className="mt-16 pt-8 border-t-2 border-gray-900">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">More to Explore</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                More to Explore
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {relatedArticles.slice(0, 3).map((related) => (
                   <div
@@ -405,7 +560,7 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
                     className="group cursor-pointer"
                     onClick={() => {
                       // Switch to this article - would need to be implemented in parent
-                      console.log('Switch to article:', related.id);
+                      console.log("Switch to article:", related.id);
                     }}
                   >
                     <div className="aspect-video mb-3 overflow-hidden rounded-lg bg-gray-100">
@@ -419,7 +574,9 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
                     <h4 className="font-bold text-lg text-gray-900 group-hover:text-brand-blue transition-colors">
                       {related.title}
                     </h4>
-                    <p className="text-sm text-gray-500 mt-2">{related.source.name}</p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      {related.source.name}
+                    </p>
                   </div>
                 ))}
               </div>

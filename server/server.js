@@ -78,6 +78,43 @@ const startServer = async () => {
     console.log(`   Disabled: ${healthStatus.disabled}`);
     console.log(`   Status: ${healthStatus.status.toUpperCase()}\n`);
 
+    // Initialize Trending Articles Cache
+    console.log("📰 Initializing Trending Articles Cache...");
+    const trendingArticlesService = require("./services/trendingArticlesService");
+    const TrendingArticles = require("./models/TrendingArticles");
+
+    // Check if cache needs initialization
+    const needsInit = await TrendingArticles.needsGeneration();
+    if (needsInit) {
+      console.log("🔄 Generating initial trending articles cache...");
+      try {
+        await trendingArticlesService.generateDailyCache();
+        console.log("✅ Trending articles cache initialized successfully\n");
+      } catch (error) {
+        console.warn("⚠️  Failed to initialize cache on startup, will generate on first request:", error.message, "\n");
+      }
+    } else {
+      console.log("✅ Trending articles cache already exists\n");
+    }
+
+    // Initialize Daily Quiz Cache
+    console.log("🧠 Initializing Daily Quiz Cache...");
+    const dailyQuizService = require("./services/dailyQuizService");
+    const DailyQuiz = require("./models/DailyQuiz");
+
+    const quizNeedsInit = await DailyQuiz.needsGeneration();
+    if (quizNeedsInit) {
+      console.log("🔄 Generating daily quiz cache...");
+      try {
+        await dailyQuizService.generateDailyQuiz();
+        console.log("✅ Daily quiz cache initialized successfully\n");
+      } catch (error) {
+        console.warn("⚠️  Failed to initialize quiz cache, will generate on first request:", error.message, "\n");
+      }
+    } else {
+      console.log("✅ Daily quiz cache already exists\n");
+    }
+
     // Middleware
     // CORS Configuration - Production Ready
     const allowedOrigins = [
@@ -101,7 +138,7 @@ const startServer = async () => {
       credentials: true,  // Allow cookies
       optionsSuccessStatus: 200,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'Authorization']
+      allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires']
     }));
 
     app.use(cookieParser()); // Parse cookies
@@ -157,6 +194,8 @@ const startServer = async () => {
       require("./routes/intelligenceBriefing")
     );
     app.use("/api/dashboard", require("./routes/dashboard"));
+    app.use("/api/trending", require("./routes/trending"));
+    app.use("/api/iqlab", require("./routes/iqlab"));
     app.use("/api/analytics", require("./routes/analytics"));
     app.use("/api/health", require("./routes/health"));
     app.use("/api/verification", require("./routes/verification"));

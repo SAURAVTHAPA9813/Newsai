@@ -3,6 +3,7 @@ const trendAnalysisService = require('./trendAnalysisService');
 const articleAnalysisService = require('./articleAnalysisService');
 const intelligenceBriefingService = require('./intelligenceBriefingService');
 const marketDataService = require('./marketDataService');
+const trendingArticlesService = require('./trendingArticlesService');
 const { UserStats } = require('../models/UserStats');
 
 /**
@@ -21,6 +22,20 @@ const mapCategoryToNewsAPI = (category) => {
 };
 
 /**
+ * Map NewsAPI categories to TrendingArticles cache categories
+ */
+const mapToTrendingCategory = (newsAPICategory) => {
+  const trendingCategoryMap = {
+    'business': 'business',
+    'technology': 'tech',
+    'health': 'health',
+    'general': 'all'
+  };
+
+  return trendingCategoryMap[newsAPICategory] || 'all';
+};
+
+/**
  * Get consolidated dashboard overview with all necessary data in one call
  * @param {Object} user - Authenticated user object
  * @param {Object} options - Query parameters (page, limit, readingMode, category)
@@ -35,23 +50,48 @@ const getDashboardOverview = async (user, options = {}) => {
       category = 'all'
     } = options;
 
-    // Map category to NewsAPI format
+    // Map category to NewsAPI format, then to TrendingArticles format
     const apiCategory = category && category !== 'all' ? mapCategoryToNewsAPI(category) : null;
+    const trendingCategory = apiCategory ? mapToTrendingCategory(apiCategory) : 'all';
 
     console.log('🔍 Dashboard Overview Request:', {
       originalCategory: category,
-      mappedCategory: apiCategory,
+      mappedNewsAPICategory: apiCategory,
+      trendingCategory: trendingCategory,
       readingMode,
       page,
       limit
     });
 
-    // Fetch articles - use category-specific or general headlines
-    const articles = apiCategory
-      ? await newsService.getNewsByCategory(apiCategory, page)
-      : await newsService.getHeadlines(page, limit);
+    // Fetch articles from TrendingArticles cache (same source as Trending page)
+    let articles = [];
+    try {
+      articles = await trendingArticlesService.getTrendingArticles(trendingCategory);
 
-    console.log(`✅ Fetched ${articles.length} articles for category: ${apiCategory || 'all'}`);
+      // Handle undefined or null response
+      if (!articles || !Array.isArray(articles)) {
+        console.warn('⚠️  Cache returned invalid data, using fallback');
+        articles = [];
+      }
+
+      console.log(`✅ Fetched ${articles.length} articles from cache for category: ${trendingCategory}`);
+
+      // Fallback to newsService if cache is empty (shouldn't happen, but safety net)
+      if (articles.length === 0) {
+        console.log('⚠️  Cache is empty, falling back to newsService for initial data');
+        articles = apiCategory
+          ? await newsService.getNewsByCategory(apiCategory, page)
+          : await newsService.getHeadlines(page, limit);
+        console.log(`✅ Fetched ${articles.length} articles from newsService fallback`);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching from cache, using newsService fallback:', error);
+      // Fallback to newsService if cache fails
+      articles = apiCategory
+        ? await newsService.getNewsByCategory(apiCategory, page)
+        : await newsService.getHeadlines(page, limit);
+      console.log(`✅ Fetched ${articles.length} articles from newsService fallback`);
+    }
 
     // Extract trending topics from articles
     const trendingTopics = articles.length > 0

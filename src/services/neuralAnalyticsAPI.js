@@ -48,4 +48,10 @@ const neuralAnalyticsAPI = {
   },
 };
 
+// Export default object
 export default neuralAnalyticsAPI;
+
+// Also export individual functions as named exports for convenience
+export const getNeuralAnalyticsData = neuralAnalyticsAPI.getNeuralAnalyticsData;
+export const getTopicTrendData = neuralAnalyticsAPI.getTopicTrendData;
+export const getIntegrityData = neuralAnalyticsAPI.getIntegrityData;

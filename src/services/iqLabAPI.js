@@ -34,75 +34,31 @@ const iqLabAPI = {
     return response; // { success: true, data: attempts }
   },
 
-  // Client-side functions for IQ Lab state management
-  // These would need backend endpoints for full implementation
+  // GET /api/iqlab/state - Get complete IQ Lab state
+  // Returns: { success: true, data: { newsIq, todayQuestion, skillScores, streak, badges } }
   getIQLabState: async () => {
-    // For now, return mock data - would need backend endpoint
-    return {
-      newsIq: { score: 78, xpTotal: 1250 },
-      todayQuestion: {
-        id: "q1",
-        question: "What is the capital of France?",
-        options: ["London", "Berlin", "Paris", "Madrid"],
-        correctAnswer: 2,
-        points: 10,
-        category: "General Knowledge",
-      },
-      todayAttempts: [],
-      skillScores: {
-        currentEvents: 85,
-        historicalContext: 72,
-        sourceReliability: 90,
-        biasDetection: 68,
-        factChecking: 82,
-      },
-      streak: {
-        currentStreak: 7,
-        longestStreak: 23,
-        lastCompleted: new Date().toISOString(),
-      },
-      badges: [
-        {
-          id: "b1",
-          title: "First Steps",
-          description: "Complete your first quiz",
-          icon: "🚀",
-          status: "UNLOCKED",
-          unlockedAt: "2024-01-15T10:00:00Z",
-          xpReward: 50,
-        },
-      ],
-      philosophyQuotes: [
-        {
-          text: "The truth is rarely pure and never simple.",
-          author: "Oscar Wilde",
-          category: "Truth",
-        },
-      ],
-    };
+    const response = await apiClient.get("/iqlab/state");
+    return response; // { success: true, data: { newsIq, todayQuestion, todayAttempts, skillScores, streak, badges } }
   },
 
-  submitDrillAttempt: async (questionId, answeredIndex) => {
-    // Mock implementation - would need backend endpoint
-    const isCorrect = answeredIndex === 2; // Mock correct answer
-    const earnedXp = isCorrect ? 10 : 0;
-
-    return {
-      attempt: {
-        questionId,
-        answeredIndex,
-        isCorrect,
-        earnedXp,
-        countsForDailyReward: true,
-      },
-      updatedState: await this.getIQLabState(), // Mock updated state
-    };
-  },
-
-  unlockBadge: async (badgeId) => {
-    // Mock implementation - would need backend endpoint
-    return await this.getIQLabState(); // Mock updated state
+  // Submit daily quiz (uses existing quiz endpoint)
+  submitDailyQuiz: async (quizId, answers, timeSpent = 0) => {
+    const response = await apiClient.post(`/quiz/${quizId}/submit`, {
+      answers,
+      timeSpent,
+      completed: true
+    });
+    return response;
   },
 };
 
+// Export default object
 export default iqLabAPI;
+
+// Also export individual functions as named exports for convenience
+export const getDailyQuiz = iqLabAPI.getDailyQuiz;
+export const getQuizQuestions = iqLabAPI.getQuizQuestions;
+export const submitQuizAnswers = iqLabAPI.submitQuizAnswers;
+export const submitDailyQuiz = iqLabAPI.submitDailyQuiz;
+export const getQuizHistory = iqLabAPI.getQuizHistory;
+export const getIQLabState = iqLabAPI.getIQLabState;

@@ -7,11 +7,41 @@ import StreakMonitor from "../components/iqlab/StreakMonitor";
 import AchievementBadges from "../components/iqlab/AchievementBadges";
 import PhilosophyModule from "../components/iqlab/PhilosophyModule";
 import getBadgeIcon from "../utils/badgeIcons";
-import {
-  getIQLabState,
-  submitDrillAttempt,
-  unlockBadge,
-} from "../services/iqLabAPI";
+import { getIQLabState } from "../services/iqLabAPI";
+
+// Static philosophy quotes (frontend-only)
+const PHILOSOPHY_QUOTES = [
+  {
+    text: "The first principle is that you must not fool yourself — and you are the easiest person to fool.",
+    author: "Richard Feynman",
+    source: "Caltech Commencement Address, 1974",
+    tags: ["truth", "self-awareness", "science"]
+  },
+  {
+    text: "It is the mark of an educated mind to be able to entertain a thought without accepting it.",
+    author: "Aristotle",
+    source: "Metaphysics",
+    tags: ["critical-thinking", "philosophy", "reason"]
+  },
+  {
+    text: "In the information age, the first step to sanity is FILTERING. Filter the information; extract the knowledge.",
+    author: "Nassim Nicholas Taleb",
+    source: "The Bed of Procrustes",
+    tags: ["information", "knowledge", "wisdom"]
+  },
+  {
+    text: "The truth is rarely pure and never simple.",
+    author: "Oscar Wilde",
+    source: "The Importance of Being Earnest",
+    tags: ["truth", "complexity", "nuance"]
+  },
+  {
+    text: "A lie can travel halfway around the world while the truth is putting on its shoes.",
+    author: "Mark Twain",
+    source: "Attributed",
+    tags: ["truth", "misinformation", "media"]
+  }
+];
 
 const IQLabPage = () => {
   const [loading, setLoading] = useState(true);
@@ -22,56 +52,50 @@ const IQLabPage = () => {
   // Load initial state
   useEffect(() => {
     const loadState = async () => {
-      const data = await getIQLabState();
-      setState(data);
-      setLoading(false);
+      try {
+        const response = await getIQLabState();
+
+        if (response.success && response.data) {
+          // Map backend response to frontend state structure
+          setState(response.data);
+          console.log('✅ IQ Lab state loaded from backend:', response.data);
+        } else {
+          console.error('Failed to load IQ Lab state:', response);
+        }
+      } catch (error) {
+        console.error('Error loading IQ Lab state:', error);
+      } finally {
+        setLoading(false);
+      }
     };
     loadState();
   }, []);
 
   // Handle drill submission
+  // Note: Quiz submission is now handled by DailyCognitiveDrill component
+  // Badges auto-unlock when IQ Lab state is fetched from backend
   const handleDrillSubmit = async (questionId, answeredIndex) => {
-    const result = await submitDrillAttempt(questionId, answeredIndex);
-    setState(result.updatedState);
-
-    // Show XP toast if earned
-    if (result.attempt.earnedXp > 0) {
-      setXpToast({
-        amount: result.attempt.earnedXp,
-        type: result.attempt.countsForDailyReward ? "DAILY" : "PRACTICE",
-      });
-      setTimeout(() => setXpToast(null), 3000);
+    console.log('Quiz submission handled by component, reloading state...');
+    // Reload state after quiz submission to get updated stats
+    const response = await getIQLabState();
+    if (response.success && response.data) {
+      setState(response.data);
     }
-
-    // Check for badge unlocks
-    checkBadgeUnlocks(result.updatedState);
   };
 
   // Check if any badges should be unlocked
+  // Note: Backend now handles badge unlocking automatically
   const checkBadgeUnlocks = async (currentState) => {
-    const lockedBadges = currentState.badges.filter(
-      (b) => b.status === "LOCKED"
-    );
+    // Badges are auto-unlocked by backend when state is fetched
+    // Just check for newly unlocked badges and show toast
+    if (currentState && currentState.badges) {
+      const newlyUnlocked = currentState.badges.filter(
+        (b) => b.status === 'unlocked' && !b.toastShown
+      );
 
-    for (const badge of lockedBadges) {
-      const { type, threshold, field } = badge.criteria;
-      let currentValue = 0;
-
-      // Get current value based on criteria type
-      if (field === "currentStreak") {
-        currentValue = currentState.streak.currentStreak;
-      } else if (field === "drillsCompletedCount") {
-        currentValue = currentState.todayAttempts.length;
-      }
-      // Add more field mappings as needed
-
-      // Check if threshold met
-      if (currentValue >= threshold) {
-        const updatedState = await unlockBadge(badge.id);
-        setState(updatedState);
-
-        // Show badge unlock toast
-        setBadgeToast(badge);
+      if (newlyUnlocked.length > 0) {
+        // Show badge unlock toast for first newly unlocked badge
+        setBadgeToast(newlyUnlocked[0]);
         setTimeout(() => setBadgeToast(null), 4000);
       }
     }
@@ -184,7 +208,7 @@ const IQLabPage = () => {
 
         {/* Row 3: Philosophy Footer */}
         <div>
-          <PhilosophyModule quotes={state.philosophyQuotes} />
+          <PhilosophyModule quotes={PHILOSOPHY_QUOTES} />
         </div>
       </div>
 

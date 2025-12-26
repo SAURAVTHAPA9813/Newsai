@@ -496,4 +496,232 @@ router.put('/topics/:topicId', protect, async (req, res) => {
   }
 });
 
+// ===== SAVED ARTICLES ENDPOINTS =====
+
+// @desc    Save an article
+// @route   POST /api/user/saved-articles
+// @access  Private
+router.post('/saved-articles', protect, async (req, res) => {
+  try {
+    const { articleData } = req.body;
+
+    // Validate required fields
+    if (!articleData || !articleData.title || !articleData.url) {
+      return res.status(400).json({
+        success: false,
+        message: 'Article title and URL are required'
+      });
+    }
+
+    const SavedArticle = require('../models/SavedArticle');
+    const Article = require('../models/Article');
+
+    // Find or create the article in the database
+    let article = await Article.findOne({ url: articleData.url });
+
+    if (!article) {
+      article = await Article.create({
+        title: articleData.title,
+        description: articleData.description,
+        url: articleData.url,
+        urlToImage: articleData.imageUrl,
+        source: articleData.source,
+        category: articleData.category || 'general',
+        publishedAt: articleData.publishedAt,
+        author: articleData.author,
+        content: articleData.content
+      });
+      console.log('✅ Created new article:', article._id);
+    }
+
+    // Increment save count
+    article.saveCount = (article.saveCount || 0) + 1;
+    if (!article.savedBy.includes(req.user._id)) {
+      article.savedBy.push(req.user._id);
+    }
+    await article.save();
+
+    // Check if already saved
+    const existingSave = await SavedArticle.findOne({
+      user: req.user._id,
+      article: article._id
+    });
+
+    if (existingSave) {
+      return res.status(200).json({
+        success: true,
+        message: 'Article already saved',
+        data: existingSave
+      });
+    }
+
+    // Create saved article entry
+    const savedArticle = await SavedArticle.create({
+      user: req.user._id,
+      article: article._id,
+      articleData: {
+        title: articleData.title,
+        description: articleData.description,
+        url: articleData.url,
+        imageUrl: articleData.imageUrl,
+        source: articleData.source,
+        category: articleData.category || 'general',
+        publishedAt: articleData.publishedAt
+      }
+    });
+
+    console.log('✅ Article saved by user:', req.user._id);
+
+    res.status(201).json({
+      success: true,
+      message: 'Article saved successfully',
+      data: savedArticle
+    });
+  } catch (error) {
+    console.error('❌ Save article error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error saving article',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @desc    Unsave an article
+// @route   DELETE /api/user/saved-articles?url=<articleUrl>
+// @access  Private
+router.delete('/saved-articles', protect, async (req, res) => {
+  try {
+    const { url } = req.query;
+
+    if (!url) {
+      return res.status(400).json({
+        success: false,
+        message: 'Article URL is required'
+      });
+    }
+
+    const SavedArticle = require('../models/SavedArticle');
+    const Article = require('../models/Article');
+
+    // Find the article
+    const article = await Article.findOne({ url });
+
+    if (!article) {
+      return res.status(404).json({
+        success: false,
+        message: 'Article not found'
+      });
+    }
+
+    // Remove saved article entry
+    const deleted = await SavedArticle.findOneAndDelete({
+      user: req.user._id,
+      article: article._id
+    });
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Saved article not found'
+      });
+    }
+
+    // Decrement save count
+    article.saveCount = Math.max(0, (article.saveCount || 0) - 1);
+    article.savedBy = article.savedBy.filter(id => !id.equals(req.user._id));
+    await article.save();
+
+    console.log('✅ Article unsaved by user:', req.user._id);
+
+    res.json({
+      success: true,
+      message: 'Article removed from saved items'
+    });
+  } catch (error) {
+    console.error('❌ Unsave article error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error removing saved article',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @desc    Get all saved articles
+// @route   GET /api/user/saved-articles
+// @access  Private
+router.get('/saved-articles', protect, async (req, res) => {
+  try {
+    const SavedArticle = require('../models/SavedArticle');
+
+    const savedArticles = await SavedArticle.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    console.log('✅ Retrieved', savedArticles.length, 'saved articles for user:', req.user._id);
+
+    res.json({
+      success: true,
+      count: savedArticles.length,
+      data: savedArticles
+    });
+  } catch (error) {
+    console.error('❌ Get saved articles error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching saved articles',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @desc    Check if article is saved
+// @route   GET /api/user/saved-articles/check?url=<articleUrl>
+// @access  Private
+router.get('/saved-articles/check', protect, async (req, res) => {
+  try {
+    const { url } = req.query;
+
+    if (!url) {
+      return res.status(400).json({
+        success: false,
+        message: 'Article URL is required'
+      });
+    }
+
+    const SavedArticle = require('../models/SavedArticle');
+    const Article = require('../models/Article');
+
+    // Find the article
+    const article = await Article.findOne({ url });
+
+    if (!article) {
+      return res.json({
+        success: true,
+        isSaved: false
+      });
+    }
+
+    // Check if saved
+    const savedArticle = await SavedArticle.findOne({
+      user: req.user._id,
+      article: article._id
+    });
+
+    res.json({
+      success: true,
+      isSaved: !!savedArticle,
+      savedArticle: savedArticle || null
+    });
+  } catch (error) {
+    console.error('❌ Check saved article error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking saved status',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 module.exports = router;

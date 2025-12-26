@@ -132,10 +132,9 @@ exports.generateCompleteBriefing = async (userId = null) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    // Determine generation time (morning or evening)
+    // Always set to 'morning' since we only generate once daily at 8 AM
     const now = new Date();
-    const hour = now.getHours();
-    const generationTime = hour >= 8 && hour < 20 ? 'morning' : 'evening';
+    const generationTime = 'morning';
     const date = now.toISOString().split('T')[0];
 
     // Save to database
@@ -160,7 +159,7 @@ exports.generateCompleteBriefing = async (userId = null) => {
 
     await briefingDoc.save();
 
-    console.log(`✅ Complete briefing generated and saved for ${generationTime} on ${date}`);
+    console.log(`✅ Complete briefing generated and saved on ${date}`);
 
     return briefingDoc;
   } catch (error) {
@@ -168,8 +167,7 @@ exports.generateCompleteBriefing = async (userId = null) => {
 
     // Log failed attempt to database
     const now = new Date();
-    const hour = now.getHours();
-    const generationTime = hour >= 8 && hour < 20 ? 'morning' : 'evening';
+    const generationTime = 'morning'; // Always morning for once-daily generation
     const date = now.toISOString().split('T')[0];
 
     await IntelligenceBriefing.create({
@@ -208,7 +206,7 @@ exports.getCurrentBriefing = async (userId = null, forceRefresh = false) => {
       return await exports.generateCompleteBriefing(userId);
     }
 
-    console.log(`✅ Retrieved existing ${briefing.generationTime} briefing from ${briefing.date}`);
+    console.log(`✅ Retrieved existing daily briefing from ${briefing.date}`);
     return briefing;
 
   } catch (error) {

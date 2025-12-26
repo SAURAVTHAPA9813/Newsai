@@ -120,34 +120,24 @@ intelligenceBriefingSchema.statics.getCurrentBriefing = async function(userId = 
   const now = new Date();
   const hour = now.getHours();
 
-  // Determine which briefing to show
-  // 8 AM - 8 PM: Show morning briefing
-  // 8 PM - 8 AM next day: Show evening briefing
-  const generationTime = hour >= 8 && hour < 20 ? 'morning' : 'evening';
-
   const today = now.toISOString().split('T')[0];
   const yesterday = new Date(now - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-  // If it's before 8 AM, we want yesterday's evening briefing
+  // If it's before 8 AM, show yesterday's briefing
   const targetDate = hour < 8 ? yesterday : today;
 
-  // Find the most recent completed briefing
+  // Find today's briefing (all briefings are 'morning' now since we only generate once daily)
   const briefing = await this.findOne({
     userId: userId,
     date: targetDate,
-    generationTime: generationTime,
+    generationTime: 'morning',
     status: 'completed'
   }).sort({ generatedAt: -1 });
 
-  // If no briefing found for target time, try the other time slot
+  // If no briefing for target date, try the most recent one
   if (!briefing) {
-    const fallbackTime = generationTime === 'morning' ? 'evening' : 'morning';
-    const fallbackDate = generationTime === 'morning' ? yesterday : today;
-
     return await this.findOne({
       userId: userId,
-      date: fallbackDate,
-      generationTime: fallbackTime,
       status: 'completed'
     }).sort({ generatedAt: -1 });
   }
@@ -161,23 +151,20 @@ intelligenceBriefingSchema.statics.needsGeneration = async function(userId = nul
   const hour = now.getHours();
   const today = now.toISOString().split('T')[0];
 
-  // Determine which briefing should exist
-  let generationTime;
-  if (hour >= 8 && hour < 20) {
-    generationTime = 'morning';
-  } else {
-    generationTime = 'evening';
+  // Only generate if it's past 8 AM and no briefing exists for today
+  if (hour < 8) {
+    return false; // Too early, use yesterday's briefing
   }
 
-  // Check if briefing exists for current time slot
+  // Check if today's briefing exists
   const existing = await this.findOne({
     userId: userId,
     date: today,
-    generationTime: generationTime,
+    generationTime: 'morning',
     status: { $in: ['completed', 'generating'] }
   });
 
-  return !existing;
+  return !existing; // Generate if doesn't exist
 };
 
 module.exports = mongoose.model('IntelligenceBriefing', intelligenceBriefingSchema);

@@ -51,4 +51,13 @@ const topicMatrixAPI = {
   },
 };
 
+// Export default object
 export default topicMatrixAPI;
+
+// Also export individual functions as named exports for convenience
+export const getTopicMatrixState = topicMatrixAPI.getTopicMatrixState;
+export const updateContextProfile = topicMatrixAPI.updateContextProfile;
+export const updateFirewallSettings = topicMatrixAPI.updateFirewallSettings;
+export const updateAiPolicy = topicMatrixAPI.updateAiPolicy;
+export const updateTopicPreference = topicMatrixAPI.updateTopicPreference;
+export const updateUIState = topicMatrixAPI.updateUIState;

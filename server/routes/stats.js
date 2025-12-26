@@ -405,4 +405,82 @@ router.get('/reading-summary', protect, async (req, res) => {
   }
 });
 
+/**
+ * Helper function to check and unlock eligible badges
+ * Used by IQ Lab state endpoint for auto-unlocking
+ */
+const checkAndUnlockBadges = async (userStats) => {
+  const newlyUnlocked = [];
+
+  // Check each badge condition
+  for (const badgeDef of DEFAULT_BADGES) {
+    // Skip if already unlocked
+    if (userStats.badges.some(b => b.badgeId === badgeDef.id)) {
+      continue;
+    }
+
+    let shouldUnlock = false;
+
+    // Check unlock conditions
+    switch (badgeDef.unlockCondition) {
+      case 'complete_1_quiz':
+        shouldUnlock = userStats.quizStats.totalCompleted >= 1;
+        break;
+      case 'complete_10_quizzes':
+        shouldUnlock = userStats.quizStats.totalCompleted >= 10;
+        break;
+      case 'complete_50_quizzes':
+        shouldUnlock = userStats.quizStats.totalCompleted >= 50;
+        break;
+      case 'perfect_score_1':
+        shouldUnlock = userStats.quizStats.perfectScores >= 1;
+        break;
+      case 'perfect_score_10':
+        shouldUnlock = userStats.quizStats.perfectScores >= 10;
+        break;
+      case '7_day_streak':
+        shouldUnlock = userStats.streaks.longest >= 7;
+        break;
+      case '30_day_streak':
+        shouldUnlock = userStats.streaks.longest >= 30;
+        break;
+      case '100_day_streak':
+        shouldUnlock = userStats.streaks.longest >= 100;
+        break;
+      case 'read_10_articles':
+        shouldUnlock = userStats.readingStats.articlesRead >= 10;
+        break;
+      case 'read_100_articles':
+        shouldUnlock = userStats.readingStats.articlesRead >= 100;
+        break;
+      case 'category_tech_20':
+        shouldUnlock = userStats.quizStats.categoriesCompleted.technology >= 20;
+        break;
+      case 'category_science_20':
+        shouldUnlock = userStats.quizStats.categoriesCompleted.science >= 20;
+        break;
+    }
+
+    if (shouldUnlock) {
+      const result = userStats.unlockBadge(badgeDef);
+      if (result.unlocked) {
+        newlyUnlocked.push({
+          ...badgeDef,
+          unlockedAt: new Date()
+        });
+      }
+    }
+  }
+
+  if (newlyUnlocked.length > 0) {
+    await userStats.save();
+  }
+
+  return newlyUnlocked;
+};
+
 module.exports = router;
+
+// Export for use in other routes (like iqlab)
+module.exports.DEFAULT_BADGES = DEFAULT_BADGES;
+module.exports.checkAndUnlockBadges = checkAndUnlockBadges;

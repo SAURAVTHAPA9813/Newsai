@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { FiUser, FiMail, FiBookmark, FiSettings, FiLogOut, FiEdit2 } from 'react-icons/fi'
+import { FiUser, FiMail, FiBookmark, FiSettings, FiLogOut, FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import userAPI from '../services/userAPI'
 
 const UserProfilePage = () => {
   const navigate = useNavigate()
   const { user, isAuthenticated, logout, loading } = useAuth()
   const [activeTab, setActiveTab] = useState('profile')
+  const [savedArticles, setSavedArticles] = useState([])
+  const [loadingSaved, setLoadingSaved] = useState(false)
+  const [savedError, setSavedError] = useState(null)
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -15,34 +19,60 @@ const UserProfilePage = () => {
     }
   }, [isAuthenticated, loading, navigate])
 
-  // Dummy saved articles (will be replaced with actual data from backend)
-  const savedArticles = [
-    {
-      id: 1,
-      title: 'AI Revolution: How Machine Learning is Transforming Industries',
-      category: 'Technology',
-      date: '2025-11-14',
-      image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&h=400&fit=crop'
-    },
-    {
-      id: 2,
-      title: 'Global Markets Show Strong Recovery Signs',
-      category: 'Finance',
-      date: '2025-11-14',
-      image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&h=400&fit=crop'
-    },
-    {
-      id: 3,
-      title: 'Cryptocurrency Adoption Reaches New Milestones',
-      category: 'Crypto',
-      date: '2025-11-13',
-      image: 'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=600&h=400&fit=crop'
+  // Fetch saved articles when saved tab is active
+  useEffect(() => {
+    const fetchSavedArticles = async () => {
+      if (activeTab !== 'saved' || !isAuthenticated) return
+
+      setLoadingSaved(true)
+      setSavedError(null)
+
+      try {
+        const response = await userAPI.getSavedArticles()
+        if (response.success) {
+          setSavedArticles(response.data)
+          console.log('✅ Loaded', response.count, 'saved articles')
+        }
+      } catch (error) {
+        console.error('❌ Error fetching saved articles:', error)
+        setSavedError('Failed to load saved articles')
+      } finally {
+        setLoadingSaved(false)
+      }
     }
-  ]
+
+    fetchSavedArticles()
+  }, [activeTab, isAuthenticated])
 
   const handleLogout = () => {
     logout()
     navigate('/')
+  }
+
+  // Remove saved article
+  const handleRemoveArticle = async (articleUrl) => {
+    if (!window.confirm('Remove this article from your saved items?')) {
+      return
+    }
+
+    try {
+      const response = await userAPI.unsaveArticle(articleUrl)
+      if (response.success) {
+        // Remove from local state
+        setSavedArticles(prev =>
+          prev.filter(article => article.articleData.url !== articleUrl)
+        )
+        console.log('✅ Article removed from saved items')
+      }
+    } catch (error) {
+      console.error('❌ Error removing article:', error)
+      alert('Failed to remove article. Please try again.')
+    }
+  }
+
+  // Open article in new tab
+  const handleOpenArticle = (articleUrl) => {
+    window.open(articleUrl, '_blank', 'noopener,noreferrer')
   }
 
   // Show loading state
@@ -122,7 +152,7 @@ const UserProfilePage = () => {
               }`}
             >
               <FiBookmark className="w-4 h-4" />
-              Saved Articles ({user.savedArticlesCount})
+              Saved Articles ({savedArticles.length})
             </button>
             <button
               onClick={() => setActiveTab('settings')}
@@ -203,40 +233,119 @@ const UserProfilePage = () => {
         {activeTab === 'saved' && (
           <div>
             <h2 className="text-2xl font-bold text-text-dark mb-8">Your Saved Articles</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {savedArticles.map(article => (
-                <article
-                  key={article.id}
-                  className="rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300"
-                  style={{
-                    background: 'linear-gradient(125deg, rgba(255, 252, 252, 1) 0%, rgba(209, 233, 255, 1) 100%, rgba(242, 246, 255, 1) 53%)'
-                  }}
-                >
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src={article.image}
-                      alt={article.title}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-                    />
-                    <span className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-semibold text-brand-blue">
-                      {article.category}
-                    </span>
-                  </div>
 
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-text-dark mb-3 leading-tight line-clamp-2">
-                      {article.title}
-                    </h3>
-                    <div className="flex items-center justify-between text-xs text-text-secondary">
-                      <span>{new Date(article.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                      <button className="text-red-500 hover:text-red-700 font-semibold">
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+            {/* Loading State */}
+            {loadingSaved && (
+              <div className="text-center py-16">
+                <div className="text-xl text-brand-blue">Loading saved articles...</div>
+              </div>
+            )}
+
+            {/* Error State */}
+            {savedError && !loadingSaved && (
+              <div className="text-center py-16">
+                <div className="text-xl text-red-600">{savedError}</div>
+                <button
+                  onClick={() => setActiveTab('saved')}
+                  className="mt-4 px-6 py-2 bg-brand-blue text-white rounded-lg hover:bg-blue-700"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loadingSaved && !savedError && savedArticles.length === 0 && (
+              <div className="text-center py-16">
+                <FiBookmark className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-text-dark mb-2">No saved articles yet</h3>
+                <p className="text-text-secondary mb-6">
+                  Start saving articles to read them later
+                </p>
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="px-6 py-3 bg-brand-blue text-white rounded-lg hover:bg-blue-700 font-semibold"
+                >
+                  Explore Articles
+                </button>
+              </div>
+            )}
+
+            {/* Articles Grid */}
+            {!loadingSaved && !savedError && savedArticles.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {savedArticles.map(savedItem => {
+                  const article = savedItem.articleData
+                  return (
+                    <article
+                      key={savedItem._id}
+                      className="rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                      style={{
+                        background: 'linear-gradient(125deg, rgba(255, 252, 252, 1) 0%, rgba(209, 233, 255, 1) 100%, rgba(242, 246, 255, 1) 53%)'
+                      }}
+                      onClick={() => handleOpenArticle(article.url)}
+                    >
+                      <div className="relative h-48 overflow-hidden">
+                        {article.imageUrl ? (
+                          <img
+                            src={article.imageUrl}
+                            alt={article.title}
+                            className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-brand-blue/20 to-sky-200 flex items-center justify-center">
+                            <FiBookmark className="w-16 h-16 text-brand-blue/40" />
+                          </div>
+                        )}
+                        <span className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-semibold text-brand-blue">
+                          {article.category || 'General'}
+                        </span>
+                      </div>
+
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold text-text-dark mb-3 leading-tight line-clamp-2">
+                          {article.title}
+                        </h3>
+                        {article.description && (
+                          <p className="text-sm text-text-secondary mb-3 line-clamp-2">
+                            {article.description}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between text-xs text-text-secondary">
+                          <span>
+                            {article.publishedAt
+                              ? new Date(article.publishedAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })
+                              : 'Unknown date'}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveArticle(article.url)
+                            }}
+                            className="flex items-center gap-1 text-red-500 hover:text-red-700 font-semibold transition-colors"
+                          >
+                            <FiTrash2 className="w-3 h-3" />
+                            Remove
+                          </button>
+                        </div>
+                        {article.source && (
+                          <div className="mt-2 text-xs text-text-secondary">
+                            Source: {article.source.name || 'Unknown'}
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
