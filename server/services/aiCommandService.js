@@ -1,7 +1,7 @@
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Initialize Gemini AI
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * Generate AI-powered command suggestions based on user input
@@ -46,9 +46,9 @@ Make suggestions highly relevant to the user's query. If the query mentions spec
 
 Return ONLY valid JSON, no markdown formatting.`;
 
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-    // Response available
-    const text = response.text;
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
 
     // Parse JSON response
     const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();

@@ -1,10 +1,13 @@
 import { motion } from 'framer-motion';
-import { FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
+import { FiTrendingUp, FiTrendingDown, FiMinus } from 'react-icons/fi';
 
 const KpiCard = ({ kpi }) => {
-  const { label, value, changePercent, description } = kpi;
-  const isPositive = changePercent > 0;
-  const isNegative = changePercent < 0;
+  if (!kpi) return null;
+
+  const { label, value, trend } = kpi;
+  const showTrend = trend && trend !== 'stable';
+  const isPositive = trend === 'up';
+  const isNegative = trend === 'down';
 
   return (
     <motion.div
@@ -18,7 +21,7 @@ const KpiCard = ({ kpi }) => {
         <h3 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
           {label}
         </h3>
-        {changePercent !== 0 && (
+        {showTrend && (
           <div
             className={`flex items-center gap-1 text-xs font-medium ${
               isPositive ? 'text-green-600' : isNegative ? 'text-red-500' : 'text-gray-500'
@@ -28,20 +31,21 @@ const KpiCard = ({ kpi }) => {
               <FiTrendingUp className="w-3 h-3" />
             ) : isNegative ? (
               <FiTrendingDown className="w-3 h-3" />
-            ) : null}
-            <span>{Math.abs(changePercent).toFixed(1)}%</span>
+            ) : (
+              <FiMinus className="w-3 h-3" />
+            )}
           </div>
         )}
       </div>
 
       <div className="mb-2">
         <div className="text-4xl font-bold text-brand-blue font-cinzel">
-          {value}
+          {value ?? 0}
         </div>
       </div>
 
       <p className="text-xs text-text-secondary leading-relaxed">
-        {description}
+        {trend === 'up' ? 'Trending up' : trend === 'down' ? 'Trending down' : 'Stable'}
       </p>
     </motion.div>
   );

@@ -45,8 +45,7 @@ const iqLabAPI = {
   submitDailyQuiz: async (quizId, answers, timeSpent = 0) => {
     const response = await apiClient.post(`/quiz/${quizId}/submit`, {
       answers,
-      timeSpent,
-      completed: true
+      timeSpent
     });
     return response;
   },

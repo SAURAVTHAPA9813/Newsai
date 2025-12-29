@@ -4,8 +4,7 @@ const readingSessionSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
 
   // Session timing
@@ -68,6 +67,13 @@ const readingSessionSchema = new mongoose.Schema({
     min: 0,
     max: 100,
     default: 0
+  },
+
+  // Article verification status (from articleTracker)
+  verificationStatus: {
+    type: String,
+    enum: ['verified', 'mixed', 'unverified'],
+    default: 'mixed'
   },
 
   // Engagement tracking

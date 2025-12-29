@@ -1,9 +1,11 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { protect } = require('../middleware/auth');
-const ReadingSession = require('../models/ReadingSession');
-const { UserStats } = require('../models/UserStats');
-const { cacheMiddleware, userQueryKey } = require('../middleware/cache');
+const { protect } = require("../middleware/auth");
+const ReadingSession = require("../models/ReadingSession");
+const UserActivity = require("../models/UserActivity");
+const { UserStats } = require("../models/UserStats");
+const { cacheMiddleware, userQueryKey } = require("../middleware/cache");
+const activityAggregationService = require("../services/activityAggregationService");
 
 // Helper: Parse time range to date range
 const getDateRange = (timeRange) => {
@@ -11,16 +13,16 @@ const getDateRange = (timeRange) => {
   let startDate;
 
   switch (timeRange) {
-    case '7d':
+    case "7d":
       startDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
       break;
-    case '30d':
+    case "30d":
       startDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
       break;
-    case '90d':
+    case "90d":
       startDate = new Date(now - 90 * 24 * 60 * 60 * 1000);
       break;
-    case 'all':
+    case "all":
     default:
       startDate = new Date(0); // Beginning of time
   }
@@ -32,7 +34,7 @@ const getDateRange = (timeRange) => {
 const buildFilter = (userId, filters) => {
   const query = { user: userId };
 
-  const { startDate, endDate } = getDateRange(filters.timeRange || '30d');
+  const { startDate, endDate } = getDateRange(filters.timeRange || "30d");
   query.startedAt = { $gte: startDate, $lte: endDate };
 
   if (filters.device) {
@@ -40,7 +42,7 @@ const buildFilter = (userId, filters) => {
   }
 
   if (filters.topicId) {
-    query['topic.id'] = filters.topicId;
+    query["topic.id"] = filters.topicId;
   }
 
   return query;
@@ -49,332 +51,533 @@ const buildFilter = (userId, filters) => {
 // @desc    Get analytics overview
 // @route   GET /api/analytics/overview
 // @access  Private
-router.get('/overview', protect, cacheMiddleware(120, userQueryKey), async (req, res) => {
-  try {
-    const filters = {
-      timeRange: req.query.timeRange || '30d',
-      device: req.query.device,
-      topicId: req.query.topicId
-    };
+router.get(
+  "/overview",
+  protect,
+  cacheMiddleware(120, userQueryKey),
+  async (req, res) => {
+    try {
+      const filters = {
+        timeRange: req.query.timeRange || "30d",
+        device: req.query.device,
+        topicId: req.query.topicId,
+      };
 
-    const query = buildFilter(req.user._id, filters);
-    const sessions = await ReadingSession.find(query).sort({ startedAt: -1 });
+      const query = buildFilter(req.user._id, filters);
+      const sessions = await ReadingSession.find(query).sort({ startedAt: -1 });
 
-    // Calculate KPIs
-    const totalMinutes = sessions.reduce((sum, s) => sum + s.durationMinutes, 0);
-    const avgAnxiety = sessions.length > 0
-      ? sessions.reduce((sum, s) => sum + s.selfReportedAnxiety, 0) / sessions.length
-      : 0;
+      // Get user stats for activity data
+      const userStats =
+        (await UserStats.findOne({ user: req.user._id })) ||
+        new UserStats({ user: req.user._id });
 
-    const deepDiveSessions = sessions.filter(s => s.readingMode === 'deep_dive' || s.readingMode === 'intentional');
-    const focusScore = deepDiveSessions.length > 0
-      ? deepDiveSessions.reduce((sum, s) => sum + s.focusScore, 0) / deepDiveSessions.length
-      : 50;
+      // Calculate reading KPIs
+      const totalMinutes = sessions.reduce(
+        (sum, s) => sum + s.durationMinutes,
+        0
+      );
+      const avgAnxiety =
+        sessions.length > 0
+          ? sessions.reduce((sum, s) => sum + s.selfReportedAnxiety, 0) /
+            sessions.length
+          : 0;
 
-    const verifiedSessions = sessions.filter(s => s.verifyUsed);
-    const truthScore = sessions.length > 0
-      ? (verifiedSessions.length / sessions.length) * 100
-      : 0;
+      const deepDiveSessions = sessions.filter(
+        (s) => s.readingMode === "deep_dive" || s.readingMode === "intentional"
+      );
+      const focusScore =
+        deepDiveSessions.length > 0
+          ? deepDiveSessions.reduce((sum, s) => sum + s.focusScore, 0) /
+            deepDiveSessions.length
+          : 50;
 
-    const kpis = {
-      minutesRead: totalMinutes,
-      focusScore: Math.round(focusScore),
-      truthScore: Math.round(truthScore),
-      cognitiveLoad: Math.round(avgAnxiety)
-    };
+      const verifiedSessions = sessions.filter((s) => s.verifyUsed);
+      const truthScore =
+        sessions.length > 0
+          ? (verifiedSessions.length / sessions.length) * 100
+          : 0;
 
-    // Daily aggregates (last 30 days)
-    const dailyMap = new Map();
-    sessions.forEach(session => {
-      const day = new Date(session.startedAt).toISOString().split('T')[0];
-      if (!dailyMap.has(day)) {
-        dailyMap.set(day, {
-          date: day,
-          minutesRead: 0,
-          sessionsCount: 0,
-          avgAnxiety: 0,
-          anxietySum: 0
+      // Activity-based KPIs using activityAggregationService
+      const { startDate, endDate } = getDateRange(filters.timeRange || "30d");
+      const totalDays = Math.ceil(
+        (endDate - startDate) / (1000 * 60 * 60 * 24)
+      );
+
+      const [
+        platformEngagement,
+        interactionFrequency,
+        topicDiversity,
+        activeDays,
+      ] = await Promise.all([
+        activityAggregationService.calculatePlatformEngagement(
+          req.user._id,
+          startDate,
+          endDate
+        ),
+        activityAggregationService.calculateInteractionFrequency(
+          req.user._id,
+          startDate,
+          endDate
+        ),
+        activityAggregationService.calculateTopicDiversity(
+          req.user._id,
+          startDate,
+          endDate
+        ),
+        activityAggregationService.calculateActiveDays(
+          req.user._id,
+          startDate,
+          endDate
+        ),
+      ]);
+
+      const kpis = {
+        minutesRead: totalMinutes,
+        focusScore: Math.round(focusScore),
+        truthScore: Math.round(truthScore),
+        cognitiveLoad: Math.round(avgAnxiety),
+        platformEngagement, // minutes on platform
+        interactionFrequency, // actions per session
+        topicDiversity, // 0-100 score
+        activeDays, // number of active days
+      };
+
+      // Daily aggregates (last 30 days)
+      const dailyMap = new Map();
+      sessions.forEach((session) => {
+        const day = new Date(session.startedAt).toISOString().split("T")[0];
+        if (!dailyMap.has(day)) {
+          dailyMap.set(day, {
+            date: day,
+            minutesRead: 0,
+            sessionsCount: 0,
+            avgAnxiety: 0,
+            anxietySum: 0,
+          });
+        }
+        const data = dailyMap.get(day);
+        data.minutesRead += session.durationMinutes;
+        data.sessionsCount += 1;
+        data.anxietySum += session.selfReportedAnxiety;
+        data.avgAnxiety = Math.round(data.anxietySum / data.sessionsCount);
+      });
+
+      const dailyAggregates = Array.from(dailyMap.values()).sort(
+        (a, b) => new Date(a.date) - new Date(b.date)
+      );
+
+      // Topic metrics (with category for RadarDietMap)
+      const topicMap = new Map();
+      sessions.forEach((session) => {
+        if (!session.topic?.id) return;
+
+        if (!topicMap.has(session.topic.id)) {
+          topicMap.set(session.topic.id, {
+            topicId: session.topic.id,
+            topicName: session.topic.name,
+            category: session.topic.category || session.topic.name || 'GENERAL', // Add category field
+            minutesRead: 0,
+            sessionsCount: 0,
+            avgAnxiety: 0,
+            anxietySum: 0,
+            trend: "stable",
+            anxietyCorrelation: 0,
+          });
+        }
+
+        const data = topicMap.get(session.topic.id);
+        data.minutesRead += session.durationMinutes;
+        data.sessionsCount += 1;
+        data.anxietySum += session.selfReportedAnxiety;
+        data.avgAnxiety = Math.round(data.anxietySum / data.sessionsCount);
+      });
+
+      const topicMetrics = Array.from(topicMap.values())
+        .sort((a, b) => b.minutesRead - a.minutesRead)
+        .slice(0, 10);
+
+      // Source metrics (by actual source name AND tier for diversity chart)
+      const sourceMap = new Map();
+      const tierMap = new Map();
+
+      sessions.forEach((session) => {
+        // Group by source name for SourceDiversityDonut
+        const sourceName = session.source?.name || 'Unknown';
+        const tier = session.source?.tier || 'unknown';
+
+        // Track by source name
+        if (!sourceMap.has(sourceName)) {
+          sourceMap.set(sourceName, {
+            name: sourceName,
+            tier: tier,
+            sessionsCount: 0,
+            minutesRead: 0,
+          });
+        }
+        sourceMap.get(sourceName).sessionsCount += 1;
+        sourceMap.get(sourceName).minutesRead += session.durationMinutes;
+
+        // Also track by tier for other metrics
+        if (!tierMap.has(tier)) {
+          tierMap.set(tier, {
+            tier,
+            sessionsCount: 0,
+            minutesRead: 0,
+          });
+        }
+        tierMap.get(tier).sessionsCount += 1;
+        tierMap.get(tier).minutesRead += session.durationMinutes;
+      });
+
+      const totalSessions = sessions.length;
+      const sourceMetrics = {
+        diversity: sourceMap.size,
+        // Tier distribution (premium/standard/basic)
+        tierDistribution: Array.from(tierMap.values()).map((s) => ({
+          ...s,
+          percentage:
+            totalSessions > 0
+              ? Math.round((s.sessionsCount / totalSessions) * 100)
+              : 0,
+        })),
+        // Source distribution (actual source names: TechCrunch, BBC, etc.)
+        sourceDistribution: Array.from(sourceMap.values()).map((s) => ({
+          ...s,
+          percentage:
+            totalSessions > 0
+              ? Math.round((s.sessionsCount / totalSessions) * 100)
+              : 0,
+        })),
+        premiumRatio: tierMap.get("premium")?.sessionsCount || 0,
+        reliability: Math.round(truthScore),
+      };
+
+      // Generate insights
+      const insights = [];
+
+      // Concentration insight
+      if (focusScore >= 75) {
+        insights.push({
+          type: "concentration",
+          severity: "positive",
+          message: "Excellent focus levels during deep reading sessions",
+          recommendation: "Keep up your intentional reading habits",
+        });
+      } else if (focusScore < 50) {
+        insights.push({
+          type: "concentration",
+          severity: "warning",
+          message: "Lower focus detected during reading",
+          recommendation: "Try intentional reading mode for better engagement",
         });
       }
-      const data = dailyMap.get(day);
-      data.minutesRead += session.durationMinutes;
-      data.sessionsCount += 1;
-      data.anxietySum += session.selfReportedAnxiety;
-      data.avgAnxiety = Math.round(data.anxietySum / data.sessionsCount);
-    });
 
-    const dailyAggregates = Array.from(dailyMap.values()).sort((a, b) =>
-      new Date(a.date) - new Date(b.date)
-    );
-
-    // Topic metrics
-    const topicMap = new Map();
-    sessions.forEach(session => {
-      if (!session.topic?.id) return;
-
-      if (!topicMap.has(session.topic.id)) {
-        topicMap.set(session.topic.id, {
-          topicId: session.topic.id,
-          topicName: session.topic.name,
-          minutesRead: 0,
-          sessionsCount: 0,
-          avgAnxiety: 0,
-          anxietySum: 0,
-          trend: 'stable',
-          anxietyCorrelation: 0
+      // Diversity insight
+      if (topicMetrics.length >= 5) {
+        insights.push({
+          type: "topic_diversity_high",
+          severity: "positive",
+          message: `Reading across ${topicMetrics.length} different topics`,
+          recommendation: "Great topic diversity - keeps perspectives balanced",
+        });
+      } else if (topicMetrics.length <= 2) {
+        insights.push({
+          type: "topic_diversity_low",
+          severity: "info",
+          message: "Limited topic variety in recent reading",
+          recommendation:
+            "Explore new topics in the Topic Matrix to broaden perspective",
         });
       }
 
-      const data = topicMap.get(session.topic.id);
-      data.minutesRead += session.durationMinutes;
-      data.sessionsCount += 1;
-      data.anxietySum += session.selfReportedAnxiety;
-      data.avgAnxiety = Math.round(data.anxietySum / data.sessionsCount);
-    });
-
-    const topicMetrics = Array.from(topicMap.values())
-      .sort((a, b) => b.minutesRead - a.minutesRead)
-      .slice(0, 10);
-
-    // Source metrics
-    const sourceMap = new Map();
-    sessions.forEach(session => {
-      const tier = session.source?.tier || 'unknown';
-
-      if (!sourceMap.has(tier)) {
-        sourceMap.set(tier, {
-          tier,
-          sessionsCount: 0,
-          minutesRead: 0
+      // Anxiety insight
+      if (avgAnxiety > 70) {
+        insights.push({
+          type: "anxiety",
+          severity: "warning",
+          message: "Higher anxiety levels detected",
+          recommendation: "Use Decompress mode to reduce information overload",
         });
       }
 
-      const data = sourceMap.get(tier);
-      data.sessionsCount += 1;
-      data.minutesRead += session.durationMinutes;
-    });
-
-    const totalSessions = sessions.length;
-    const sourceMetrics = {
-      diversity: sourceMap.size,
-      tierDistribution: Array.from(sourceMap.values()).map(s => ({
-        ...s,
-        percentage: totalSessions > 0 ? Math.round((s.sessionsCount / totalSessions) * 100) : 0
-      })),
-      premiumRatio: sourceMap.get('premium')?.sessionsCount || 0,
-      reliability: Math.round(truthScore)
-    };
-
-    // Generate insights
-    const insights = [];
-
-    // Concentration insight
-    if (focusScore >= 75) {
-      insights.push({
-        type: 'concentration',
-        severity: 'positive',
-        message: 'Excellent focus levels during deep reading sessions',
-        recommendation: 'Keep up your intentional reading habits'
-      });
-    } else if (focusScore < 50) {
-      insights.push({
-        type: 'concentration',
-        severity: 'warning',
-        message: 'Lower focus detected during reading',
-        recommendation: 'Try intentional reading mode for better engagement'
-      });
-    }
-
-    // Diversity insight
-    if (topicMetrics.length >= 5) {
-      insights.push({
-        type: 'diversity',
-        severity: 'positive',
-        message: `Reading across ${topicMetrics.length} different topics`,
-        recommendation: 'Great topic diversity - keeps perspectives balanced'
-      });
-    } else if (topicMetrics.length <= 2) {
-      insights.push({
-        type: 'diversity',
-        severity: 'info',
-        message: 'Limited topic variety in recent reading',
-        recommendation: 'Explore new topics in the Topic Matrix to broaden perspective'
-      });
-    }
-
-    // Anxiety insight
-    if (avgAnxiety > 70) {
-      insights.push({
-        type: 'anxiety',
-        severity: 'warning',
-        message: 'Higher anxiety levels detected',
-        recommendation: 'Use Decompress mode to reduce information overload'
-      });
-    }
-
-    // Truth score insight
-    if (truthScore < 30) {
-      insights.push({
-        type: 'verification',
-        severity: 'info',
-        message: 'Low usage of verification tools',
-        recommendation: 'Try the Verify feature to fact-check claims'
-      });
-    }
-
-    // Transform KPIs object to kpiCards array for frontend
-    const kpiCards = [
-      {
-        type: 'minutesRead',
-        value: kpis.minutesRead,
-        label: 'Minutes Read',
-        trend: 'up',
-        icon: 'clock'
-      },
-      {
-        type: 'focusScore',
-        value: kpis.focusScore,
-        label: 'Focus Score',
-        trend: kpis.focusScore >= 75 ? 'up' : kpis.focusScore < 50 ? 'down' : 'stable',
-        icon: 'target'
-      },
-      {
-        type: 'truthScore',
-        value: kpis.truthScore,
-        label: 'Truth Score',
-        trend: kpis.truthScore >= 70 ? 'up' : kpis.truthScore < 30 ? 'down' : 'stable',
-        icon: 'shield'
-      },
-      {
-        type: 'cognitiveLoad',
-        value: kpis.cognitiveLoad,
-        label: 'Cognitive Load',
-        trend: kpis.cognitiveLoad <= 30 ? 'down' : kpis.cognitiveLoad > 70 ? 'up' : 'stable',
-        icon: 'brain'
+      // Truth score insight
+      if (truthScore < 30) {
+        insights.push({
+          type: "verification",
+          severity: "info",
+          message: "Low usage of verification tools",
+          recommendation: "Try the Verify feature to fact-check claims",
+        });
       }
-    ];
 
-    res.json({
-      success: true,
-      data: {
-        kpiCards,
-        kpis,
-        dailyAggregates,
-        topicMetrics,
-        sourceMetrics,
-        insights,
-        readingSessions: sessions.slice(0, 20), // Include recent sessions
-        filters
-      }
-    });
-  } catch (error) {
-    console.error('Get analytics overview error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching analytics overview'
-    });
+      // Activity-based insights from activityAggregationService
+      const activityInsights =
+        await activityAggregationService.getActivityInsights(
+          req.user._id,
+          startDate,
+          endDate
+        );
+
+      // Merge activity insights with existing insights
+      insights.push(...activityInsights);
+
+      // Transform KPIs object to kpiCards array for frontend (10 cards)
+      const avgSessionLength =
+        totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0;
+
+      const kpiCards = [
+        {
+          type: "minutesRead",
+          value: kpis.minutesRead,
+          label: "Minutes Read",
+          trend: "up",
+          icon: "clock",
+        },
+        {
+          type: "platformEngagement",
+          value: kpis.platformEngagement,
+          label: "Platform Time",
+          trend: "up",
+          icon: "activity",
+        },
+        {
+          type: "focusScore",
+          value: kpis.focusScore,
+          label: "Focus Score",
+          trend:
+            kpis.focusScore >= 75
+              ? "up"
+              : kpis.focusScore < 50
+              ? "down"
+              : "stable",
+          icon: "target",
+        },
+        {
+          type: "interactionFrequency",
+          value: kpis.interactionFrequency,
+          label: "Actions/Session",
+          trend: kpis.interactionFrequency > 15 ? "up" : "stable",
+          icon: "mouse-pointer",
+        },
+        {
+          type: "truthScore",
+          value: kpis.truthScore,
+          label: "Truth Score",
+          trend:
+            kpis.truthScore >= 70
+              ? "up"
+              : kpis.truthScore < 30
+              ? "down"
+              : "stable",
+          icon: "shield",
+        },
+        {
+          type: "cognitiveLoad",
+          value: kpis.cognitiveLoad,
+          label: "Cognitive Load",
+          trend:
+            kpis.cognitiveLoad <= 30
+              ? "down"
+              : kpis.cognitiveLoad > 70
+              ? "up"
+              : "stable",
+          icon: "brain",
+        },
+        {
+          type: "topicDiversity",
+          value: kpis.topicDiversity,
+          label: "Topic Diversity",
+          trend:
+            kpis.topicDiversity >= 70
+              ? "up"
+              : kpis.topicDiversity < 30
+              ? "down"
+              : "stable",
+          icon: "grid",
+        },
+        {
+          type: "activeDays",
+          value: kpis.activeDays,
+          label: `Active Days (${totalDays}d)`,
+          trend:
+            kpis.activeDays / totalDays > 0.5
+              ? "up"
+              : kpis.activeDays / totalDays < 0.2
+              ? "down"
+              : "stable",
+          icon: "calendar",
+        },
+        {
+          type: "totalSessions",
+          value: totalSessions,
+          label: "Total Sessions",
+          trend: "up",
+          icon: "book-open",
+        },
+        {
+          type: "avgSessionLength",
+          value: avgSessionLength,
+          label: "Avg Session (min)",
+          trend: avgSessionLength > 10 ? "up" : "stable",
+          icon: "zap",
+        },
+      ];
+
+      res.json({
+        success: true,
+        data: {
+          kpiCards,
+          kpis,
+          dailyAggregates,
+          topicMetrics,
+          sourceMetrics,
+          insights,
+          readingSessions: sessions.slice(0, 20), // Include recent sessions
+          topicMeasuring: userStats.topicMeasuring,
+          activityStats: userStats.activityStats,
+          filters,
+        },
+      });
+    } catch (error) {
+      console.error("Get analytics overview error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching analytics overview",
+      });
+    }
   }
-});
+);
 
 // @desc    Get topic trends over time
 // @route   GET /api/analytics/trends
 // @access  Private
-router.get('/trends', protect, cacheMiddleware(120, userQueryKey), async (req, res) => {
-  try {
-    const filters = {
-      timeRange: req.query.timeRange || '30d',
-      topicId: req.query.topicId
-    };
+router.get(
+  "/trends",
+  protect,
+  cacheMiddleware(120, userQueryKey),
+  async (req, res) => {
+    try {
+      const filters = {
+        timeRange: req.query.timeRange || "30d",
+        topicId: req.query.topicId,
+      };
 
-    const query = buildFilter(req.user._id, filters);
-    const sessions = await ReadingSession.find(query).sort({ startedAt: 1 });
+      const query = buildFilter(req.user._id, filters);
+      const sessions = await ReadingSession.find(query).sort({ startedAt: 1 });
 
-    // Group by day and topic
-    const trendMap = new Map();
+      // Group by day and topic
+      const trendMap = new Map();
 
-    sessions.forEach(session => {
-      if (!session.topic?.id) return;
+      sessions.forEach((session) => {
+        if (!session.topic?.id) return;
 
-      const day = new Date(session.startedAt).toISOString().split('T')[0];
-      const key = `${day}-${session.topic.id}`;
+        const day = new Date(session.startedAt).toISOString().split("T")[0];
+        const key = `${day}-${session.topic.id}`;
 
-      if (!trendMap.has(key)) {
-        trendMap.set(key, {
-          date: day,
-          topicId: session.topic.id,
-          topicName: session.topic.name,
-          minutesRead: 0,
-          sessionsCount: 0,
-          avgAnxiety: 0,
-          anxietySum: 0
-        });
-      }
+        if (!trendMap.has(key)) {
+          trendMap.set(key, {
+            date: day,
+            topicId: session.topic.id,
+            topicName: session.topic.name,
+            minutesRead: 0,
+            sessionsCount: 0,
+            avgAnxiety: 0,
+            anxietySum: 0,
+          });
+        }
 
-      const data = trendMap.get(key);
-      data.minutesRead += session.durationMinutes;
-      data.sessionsCount += 1;
-      data.anxietySum += session.selfReportedAnxiety;
-      data.avgAnxiety = Math.round(data.anxietySum / data.sessionsCount);
-    });
+        const data = trendMap.get(key);
+        data.minutesRead += session.durationMinutes;
+        data.sessionsCount += 1;
+        data.anxietySum += session.selfReportedAnxiety;
+        data.avgAnxiety = Math.round(data.anxietySum / data.sessionsCount);
+      });
 
-    const trends = Array.from(trendMap.values()).sort((a, b) =>
-      new Date(a.date) - new Date(b.date)
-    );
+      const trends = Array.from(trendMap.values()).sort(
+        (a, b) => new Date(a.date) - new Date(b.date)
+      );
 
-    res.json({
-      success: true,
-      data: trends
-    });
-  } catch (error) {
-    console.error('Get analytics trends error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching trends'
-    });
+      res.json({
+        success: true,
+        data: trends,
+      });
+    } catch (error) {
+      console.error("Get analytics trends error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching trends",
+      });
+    }
   }
-});
+);
 
 // @desc    Get content integrity metrics
 // @route   GET /api/analytics/integrity
 // @access  Private
-router.get('/integrity', protect, cacheMiddleware(120, userQueryKey), async (req, res) => {
-  try {
-    const filters = {
-      timeRange: req.query.timeRange || '30d'
-    };
+router.get(
+  "/integrity",
+  protect,
+  cacheMiddleware(120, userQueryKey),
+  async (req, res) => {
+    try {
+      const filters = {
+        timeRange: req.query.timeRange || "30d",
+      };
 
-    const query = buildFilter(req.user._id, filters);
-    const sessions = await ReadingSession.find(query);
+      const query = buildFilter(req.user._id, filters);
+      const sessions = await ReadingSession.find(query);
 
-    const verifiedCount = sessions.filter(s => s.verifyUsed).length;
-    const opinionCount = sessions.filter(s => !s.verifyUsed).length;
-    const total = sessions.length;
+      // Track verification status of articles (from verificationStatus field)
+      let verifiedCount = 0;
+      let unverifiedCount = 0;
+      let mixedCount = 0;
 
-    const integrity = {
-      verified: {
-        count: verifiedCount,
-        percentage: total > 0 ? Math.round((verifiedCount / total) * 100) : 0
-      },
-      opinion: {
-        count: opinionCount,
-        percentage: total > 0 ? Math.round((opinionCount / total) * 100) : 0
-      },
-      total,
-      score: total > 0 ? Math.round((verifiedCount / total) * 100) : 0
-    };
+      sessions.forEach((session) => {
+        // Check if session has verification info (might not be set in old sessions)
+        const verificationStatus = session.verificationStatus || 'mixed';
 
-    res.json({
-      success: true,
-      data: integrity
-    });
-  } catch (error) {
-    console.error('Get integrity metrics error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching integrity metrics'
-    });
+        if (verificationStatus === 'verified') {
+          verifiedCount++;
+        } else if (verificationStatus === 'unverified') {
+          unverifiedCount++;
+        } else {
+          mixedCount++; // Mixed or unknown
+        }
+      });
+
+      const total = sessions.length;
+
+      const integrity = {
+        verified: {
+          count: verifiedCount,
+          percentage: total > 0 ? Math.round((verifiedCount / total) * 100) : 0,
+        },
+        unverified: {
+          count: unverifiedCount,
+          percentage:
+            total > 0 ? Math.round((unverifiedCount / total) * 100) : 0,
+        },
+        opinion: {
+          count: mixedCount,
+          percentage: total > 0 ? Math.round((mixedCount / total) * 100) : 0,
+        },
+        total,
+        score: total > 0 ? Math.round((verifiedCount / total) * 100) : 0,
+      };
+
+      res.json({
+        success: true,
+        data: integrity,
+      });
+    } catch (error) {
+      console.error("Get integrity metrics error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching integrity metrics",
+      });
+    }
   }
-});
+);
 
 // @desc    Track reading session
 // @route   POST /api/analytics/sessions
@@ -382,7 +585,7 @@ router.get('/integrity', protect, cacheMiddleware(120, userQueryKey), async (req
 // @desc    Track reading session
 // @route   POST /api/analytics/sessions
 // @access  Private
-router.post('/sessions', protect, async (req, res) => {
+router.post("/sessions", protect, async (req, res) => {
   try {
     // Parse and validate session data
     const sessionData = {
@@ -401,11 +604,12 @@ router.post('/sessions', protect, async (req, res) => {
       moodTag: req.body.moodTag,
       selfReportedAnxiety: req.body.selfReportedAnxiety,
       completionRate: req.body.completionRate,
-      engagementEvents: req.body.engagementEvents?.map(event => ({
-        eventType: event.eventType,
-        timestamp: new Date(event.timestamp),
-        metadata: event.metadata
-      })) || []
+      engagementEvents:
+        req.body.engagementEvents?.map((event) => ({
+          eventType: event.eventType,
+          timestamp: new Date(event.timestamp),
+          metadata: event.metadata,
+        })) || [],
     };
 
     const session = new ReadingSession(sessionData);
@@ -423,12 +627,12 @@ router.post('/sessions', protect, async (req, res) => {
 
       // Add recent activity
       userStats.recentActivity.unshift({
-        type: 'article_read',
+        type: "article_read",
         timestamp: session.endedAt,
         details: {
           title: session.articleTitle,
-          duration: session.durationMinutes
-        }
+          duration: session.durationMinutes,
+        },
       });
 
       // Keep only last 50 activities
@@ -436,22 +640,22 @@ router.post('/sessions', protect, async (req, res) => {
 
       await userStats.save();
     } catch (statsError) {
-      console.error('Error updating UserStats:', statsError);
+      console.error("Error updating UserStats:", statsError);
       // Don't fail the session tracking if stats update fails
     }
 
     res.json({
       success: true,
-      message: 'Session tracked successfully',
-      data: session
+      message: "Session tracked successfully",
+      data: session,
     });
   } catch (error) {
-    console.error('Track session error:', error);
-    console.error('Error stack:', error.stack);
-    console.error('Request body:', req.body);
+    console.error("Track session error:", error);
+    console.error("Error stack:", error.stack);
+    console.error("Request body:", req.body);
     res.status(500).json({
       success: false,
-      message: error.message || 'Error tracking session'
+      message: error.message || "Error tracking session",
     });
   }
 });
@@ -459,7 +663,7 @@ router.post('/sessions', protect, async (req, res) => {
 // @desc    Get reading sessions
 // @route   GET /api/analytics/sessions
 // @access  Private
-router.get('/sessions', protect, async (req, res) => {
+router.get("/sessions", protect, async (req, res) => {
   try {
     const { startDate, endDate, topicId, limit = 50 } = req.query;
 
@@ -472,7 +676,7 @@ router.get('/sessions', protect, async (req, res) => {
     }
 
     if (topicId) {
-      query['topic.id'] = topicId;
+      query["topic.id"] = topicId;
     }
 
     const sessions = await ReadingSession.find(query)
@@ -481,13 +685,13 @@ router.get('/sessions', protect, async (req, res) => {
 
     res.json({
       success: true,
-      data: sessions
+      data: sessions,
     });
   } catch (error) {
-    console.error('Get sessions error:', error);
+    console.error("Get sessions error:", error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching sessions'
+      message: "Error fetching sessions",
     });
   }
 });
@@ -495,25 +699,31 @@ router.get('/sessions', protect, async (req, res) => {
 // @desc    Update session
 // @route   PUT /api/analytics/sessions/:id
 // @access  Private
-router.put('/sessions/:id', protect, async (req, res) => {
+router.put("/sessions/:id", protect, async (req, res) => {
   try {
     const session = await ReadingSession.findOne({
       _id: req.params.id,
-      user: req.user._id
+      user: req.user._id,
     });
 
     if (!session) {
       return res.status(404).json({
         success: false,
-        message: 'Session not found'
+        message: "Session not found",
       });
     }
 
     // Update allowed fields
-    const allowedUpdates = ['endedAt', 'durationMinutes', 'engagementEvents',
-                            'moodTag', 'selfReportedAnxiety', 'completionRate'];
+    const allowedUpdates = [
+      "endedAt",
+      "durationMinutes",
+      "engagementEvents",
+      "moodTag",
+      "selfReportedAnxiety",
+      "completionRate",
+    ];
 
-    allowedUpdates.forEach(field => {
+    allowedUpdates.forEach((field) => {
       if (req.body[field] !== undefined) {
         session[field] = req.body[field];
       }
@@ -523,14 +733,238 @@ router.put('/sessions/:id', protect, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Session updated successfully',
-      data: session
+      message: "Session updated successfully",
+      data: session,
     });
   } catch (error) {
-    console.error('Update session error:', error);
+    console.error("Update session error:", error);
     res.status(500).json({
       success: false,
-      message: 'Error updating session'
+      message: "Error updating session",
+    });
+  }
+});
+
+// @desc    Log user activity
+// @route   POST /api/analytics/activities
+// @access  Private
+router.post("/activities", protect, async (req, res) => {
+  try {
+    const activityData = {
+      user: req.user._id,
+      action: req.body.action,
+      page: req.body.page,
+      timestamp: req.body.timestamp ? new Date(req.body.timestamp) : new Date(),
+      duration: req.body.duration || 0,
+      metadata: req.body.metadata || {},
+      sessionId: req.body.sessionId,
+    };
+
+    // Validate required fields
+    if (!activityData.action || !activityData.page) {
+      return res.status(400).json({
+        success: false,
+        message: "Action and page are required",
+      });
+    }
+
+    const activity = new UserActivity(activityData);
+    await activity.save();
+
+    // Update UserStats if needed
+    try {
+      let userStats = await UserStats.findOne({ user: req.user._id });
+      if (!userStats) {
+        userStats = new UserStats({ user: req.user._id });
+      }
+
+      // Update topic measuring for topic/interest clicks
+      if (
+        activityData.action === "topic_click" ||
+        activityData.action === "interest_click"
+      ) {
+        const category = activityData.metadata.category;
+        if (category) {
+          userStats.updateTopicMeasuring(category);
+        }
+      }
+
+      // Update activity stats for page visits
+      if (activityData.action === "page_visit") {
+        userStats.updateActivityStats(
+          activityData.page,
+          activityData.duration / 60
+        ); // convert seconds to minutes
+      }
+
+      await userStats.save();
+    } catch (statsError) {
+      console.error("Error updating UserStats:", statsError);
+      // Don't fail the activity logging if stats update fails
+    }
+
+    res.json({
+      success: true,
+      message: "Activity logged successfully",
+      data: activity,
+    });
+  } catch (error) {
+    console.error("Log activity error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error logging activity",
+    });
+  }
+});
+
+// @desc    Get user activities
+// @route   GET /api/analytics/activities
+// @access  Private
+router.get("/activities", protect, async (req, res) => {
+  try {
+    const { startDate, endDate, action, page, limit = 100 } = req.query;
+
+    const query = { user: req.user._id };
+
+    if (startDate || endDate) {
+      query.timestamp = {};
+      if (startDate) query.timestamp.$gte = new Date(startDate);
+      if (endDate) query.timestamp.$lte = new Date(endDate);
+    }
+
+    if (action) query.action = action;
+    if (page) query.page = page;
+
+    const activities = await UserActivity.find(query)
+      .sort({ timestamp: -1 })
+      .limit(parseInt(limit));
+
+    res.json({
+      success: true,
+      data: activities,
+    });
+  } catch (error) {
+    console.error("Get activities error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching activities",
+    });
+  }
+});
+
+// @desc    Log batched user activities
+// @route   POST /api/analytics/activity/batch
+// @access  Private
+router.post("/activity/batch", protect, async (req, res) => {
+  try {
+    const { sessionId, activities } = req.body;
+
+    // Validate batch data
+    if (!activities || !Array.isArray(activities) || activities.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Activities array is required and must not be empty",
+      });
+    }
+
+    console.log(
+      `🔍 Batch activity request: ${activities.length} activities from session ${sessionId}`
+    );
+
+    // Prepare activities for bulk insert
+    const activitiesToInsert = activities.map((activity) => ({
+      user: req.user._id,
+      action: activity.action,
+      page: activity.page,
+      timestamp: activity.timestamp ? new Date(activity.timestamp) : new Date(),
+      duration: activity.duration || 0,
+      metadata: activity.metadata || {},
+      sessionId: activity.sessionId || sessionId,
+    }));
+
+    // Validate all activities have required fields
+    const invalidActivities = activitiesToInsert.filter(
+      (a) => !a.action || !a.page
+    );
+
+    if (invalidActivities.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `${invalidActivities.length} activities missing required fields (action, page)`,
+      });
+    }
+
+    // Bulk insert activities
+    const insertedActivities = await UserActivity.insertMany(
+      activitiesToInsert,
+      {
+        ordered: false, // Continue on error
+      }
+    );
+
+    console.log(`✅ Inserted ${insertedActivities.length} activities`);
+
+    // Update UserStats from activity data
+    try {
+      let userStats = await UserStats.findOne({ user: req.user._id });
+      if (!userStats) {
+        userStats = new UserStats({ user: req.user._id });
+      }
+
+      // Get activity analytics for the last 30 days
+      const activityAnalytics =
+        await activityAggregationService.getActivityAnalytics(req.user._id, 30);
+
+      // Update topic interests using the new weighted algorithm
+      userStats.updateFromActivities(activityAnalytics);
+
+      // Update page visit counts and time spent
+      activities.forEach((activity) => {
+        if (activity.action === "page_visit") {
+          userStats.updateActivityStats(activity.page, 0);
+        } else if (activity.action === "time_spent") {
+          userStats.updateActivityStats(
+            activity.page,
+            Math.round(activity.duration / 60) // Convert seconds to minutes
+          );
+        }
+
+        // Update topic measuring for specific interactions
+        if (
+          activity.action === "topic_click" ||
+          activity.action === "interest_click"
+        ) {
+          const category = activity.metadata?.category;
+          if (category) {
+            userStats.updateTopicMeasuring(category);
+          }
+        }
+      });
+
+      // Update streak
+      userStats.updateStreak();
+
+      await userStats.save();
+
+      console.log(`✅ Updated UserStats for user ${req.user._id}`);
+    } catch (statsError) {
+      console.error("❌ Error updating UserStats:", statsError);
+      // Don't fail the batch if stats update fails
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully logged ${insertedActivities.length} activities`,
+      data: {
+        count: insertedActivities.length,
+        sessionId,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Batch activity logging error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error logging batch activities",
     });
   }
 });

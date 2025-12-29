@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 const { UserStats } = require('../models/UserStats');
 const { UserQuizAttempt } = require('../models/Quiz');
 const dailyQuizService = require('../services/dailyQuizService');
@@ -10,7 +10,7 @@ const dailyQuizService = require('../services/dailyQuizService');
  * @route   GET /api/iqlab/state
  * @access  Protected
  */
-router.get('/state', auth, async (req, res) => {
+router.get('/state', protect, async (req, res) => {
   try {
     const userId = req.user._id;
 

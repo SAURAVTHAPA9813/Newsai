@@ -10,7 +10,8 @@ const ImpactTags = ({ tags = [] }) => {
       label: 'Money',
       activeColor: 'bg-green-500/20 border-green-500 text-green-700',
       inactiveColor: 'bg-serenity-blue-light/50 border-serenity-blue-medium text-serenity-gray-dark',
-      sectionGlow: 'shadow-green-500/40 border-green-500/30'
+      sectionGlow: 'border-green-500/30',
+      sectionShadow: '0 0 20px rgba(34, 197, 94, 0.4)'
     },
     {
       id: 'location',
@@ -19,7 +20,8 @@ const ImpactTags = ({ tags = [] }) => {
       label: 'Location',
       activeColor: 'bg-blue-500/20 border-serenity-royal text-serenity-deep',
       inactiveColor: 'bg-serenity-blue-light/50 border-serenity-blue-medium text-serenity-gray-dark',
-      sectionGlow: 'shadow-blue-500/40 border-blue-500/30'
+      sectionGlow: 'border-blue-500/30',
+      sectionShadow: '0 0 20px rgba(59, 130, 246, 0.4)'
     },
     {
       id: 'health',
@@ -28,7 +30,8 @@ const ImpactTags = ({ tags = [] }) => {
       label: 'Health',
       activeColor: 'bg-red-500/20 border-red-500 text-red-700',
       inactiveColor: 'bg-serenity-blue-light/50 border-serenity-blue-medium text-serenity-gray-dark',
-      sectionGlow: 'shadow-red-500/40 border-red-500/30'
+      sectionGlow: 'border-red-500/30',
+      sectionShadow: '0 0 20px rgba(239, 68, 68, 0.4)'
     },
     {
       id: 'career',
@@ -37,28 +40,35 @@ const ImpactTags = ({ tags = [] }) => {
       label: 'Career',
       activeColor: 'bg-sky-500/20 border-sky-500 text-sky-700',
       inactiveColor: 'bg-serenity-blue-light/50 border-serenity-blue-medium text-serenity-gray-dark',
-      sectionGlow: 'shadow-sky-500/40 border-sky-500/30'
+      sectionGlow: 'border-sky-500/30',
+      sectionShadow: '0 0 20px rgba(14, 165, 233, 0.4)'
     }
   ];
 
   // Determine section glow based on active tags (priority: money > health > career > location)
   const getContainerGlow = () => {
-    if (tags.includes('money')) return allTags.find(t => t.id === 'money').sectionGlow;
-    if (tags.includes('health')) return allTags.find(t => t.id === 'health').sectionGlow;
-    if (tags.includes('career')) return allTags.find(t => t.id === 'career').sectionGlow;
-    if (tags.includes('location')) return allTags.find(t => t.id === 'location').sectionGlow;
-    return '';
+    if (tags.includes('money')) return allTags.find(t => t.id === 'money');
+    if (tags.includes('health')) return allTags.find(t => t.id === 'health');
+    if (tags.includes('career')) return allTags.find(t => t.id === 'career');
+    if (tags.includes('location')) return allTags.find(t => t.id === 'location');
+    return null;
   };
 
   const hasActiveTags = tags && tags.length > 0;
-  const containerGlow = getContainerGlow();
+  const activeTag = getContainerGlow();
 
   return (
-    <div className={`relative p-3 rounded-xl transition-all duration-500 ${
-      hasActiveTags
-        ? `bg-white/60 backdrop-blur-sm border-2 ${containerGlow} shadow-lg`
-        : 'bg-transparent'
-    }`}>
+    <div
+      className={`relative p-3 rounded-xl transition-all duration-500 ${
+        hasActiveTags
+          ? `bg-white/60 backdrop-blur-sm border-2 ${activeTag?.sectionGlow} shadow-lg`
+          : 'bg-transparent'
+      }`}
+      style={hasActiveTags && activeTag ? {
+        boxShadow: activeTag.sectionShadow,
+        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+      } : {}}
+    >
       {/* Animated glow background */}
       {hasActiveTags && (
         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-30 animate-pulse"></div>
@@ -99,7 +109,14 @@ const ImpactTags = ({ tags = [] }) => {
 
               {/* Glow effect for active tags */}
               {isActive && (
-                <div className="absolute inset-0 rounded-full bg-current opacity-20 blur-md animate-pulse"></div>
+                <div
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{
+                    boxShadow: '0 0 15px currentColor',
+                    opacity: 0.4,
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                  }}
+                />
               )}
 
               {/* Tooltip for active tags */}

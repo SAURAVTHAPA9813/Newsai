@@ -1,7 +1,7 @@
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Initialize Gemini AI with new SDK
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * Generate simplified explanation of an article using Gemini AI
@@ -10,6 +10,13 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
  */
 exports.explainArticle = async (article) => {
   try {
+    console.log('🔍 Generating explanation for:', article.title);
+
+    // Validate API key
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured');
+    }
+
     const prompt = `You are an expert at explaining complex news articles in simple terms for teenagers (age 15).
 
 Article Title: ${article.title}
@@ -38,12 +45,17 @@ Guidelines:
 
 Return ONLY valid JSON, no markdown formatting or code blocks.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt
-    });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
 
-    const text = response.text;
+    // Check if response was blocked
+    if (!result.response || !result.response.text) {
+      console.error('❌ Gemini response blocked or empty:', result);
+      throw new Error('Gemini API response was blocked or empty. Content may have triggered safety filters.');
+    }
+
+    const text = result.response.text();
+    console.log('✅ Received Gemini response, length:', text.length);
 
     // Parse the JSON response
     let explanationData;
@@ -51,8 +63,10 @@ Return ONLY valid JSON, no markdown formatting or code blocks.`;
       // Remove markdown code blocks if present
       const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       explanationData = JSON.parse(cleanText);
+      console.log('✅ Successfully parsed explanation data');
     } catch (parseError) {
-      console.error('Failed to parse Gemini response:', text);
+      console.error('❌ Failed to parse Gemini response:', parseError.message);
+      console.error('Raw response:', text.substring(0, 200));
       // Return fallback data
       explanationData = {
         simplifiedVersion: `This article discusses: ${article.title}.\n\n${article.description || 'No additional details available.'}`,
@@ -63,8 +77,9 @@ Return ONLY valid JSON, no markdown formatting or code blocks.`;
 
     return explanationData;
   } catch (error) {
-    console.error('Gemini API Error (explainArticle):', error.message);
-    throw new Error('Failed to generate article explanation');
+    console.error('❌ Gemini API Error (explainArticle):', error.message);
+    console.error('Error details:', error);
+    throw new Error(`Failed to generate article explanation: ${error.message}`);
   }
 };
 
@@ -75,7 +90,11 @@ Return ONLY valid JSON, no markdown formatting or code blocks.`;
  */
 exports.getMarketImpact = async (article) => {
   try {
-    // Using new SDK - see response below
+    console.log('🔍 Generating market impact for:', article.title);
+
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured');
+    }
 
     const prompt = `Analyze the potential market and financial impact of this news article:
 
@@ -117,15 +136,25 @@ Analyze:
 
 Return ONLY valid JSON, no markdown formatting.`;
 
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-    // Response already available
-    const text = response.text;
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+
+    if (!result.response || !result.response.text) {
+      console.error('❌ Gemini response blocked or empty:', result);
+      throw new Error('Gemini API response was blocked or empty. Content may have triggered safety filters.');
+    }
+
+    const text = result.response.text();
+    console.log('✅ Received Gemini response, length:', text.length);
 
     const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleanText);
+    const parsedData = JSON.parse(cleanText);
+    console.log('✅ Successfully parsed market impact data');
+    return parsedData;
   } catch (error) {
-    console.error('Gemini API Error (getMarketImpact):', error.message);
-    throw new Error('Failed to generate market impact analysis');
+    console.error('❌ Gemini API Error (getMarketImpact):', error.message);
+    console.error('Error details:', error);
+    throw new Error(`Failed to generate market impact analysis: ${error.message}`);
   }
 };
 
@@ -136,7 +165,11 @@ Return ONLY valid JSON, no markdown formatting.`;
  */
 exports.getPerspectives = async (article) => {
   try {
-    // Using new SDK - see response below
+    console.log('🔍 Generating perspectives for:', article.title);
+
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured');
+    }
 
     const prompt = `Analyze different perspectives on this news article:
 
@@ -179,15 +212,25 @@ Include 2-3 areas of consensus and 2-3 areas of disagreement.
 
 Return ONLY valid JSON, no markdown formatting.`;
 
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-    // Response already available
-    const text = response.text;
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+
+    if (!result.response || !result.response.text) {
+      console.error('❌ Gemini response blocked or empty:', result);
+      throw new Error('Gemini API response was blocked or empty. Content may have triggered safety filters.');
+    }
+
+    const text = result.response.text();
+    console.log('✅ Received Gemini response, length:', text.length);
 
     const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleanText);
+    const parsedData = JSON.parse(cleanText);
+    console.log('✅ Successfully parsed perspectives data');
+    return parsedData;
   } catch (error) {
-    console.error('Gemini API Error (getPerspectives):', error.message);
-    throw new Error('Failed to generate perspectives analysis');
+    console.error('❌ Gemini API Error (getPerspectives):', error.message);
+    console.error('Error details:', error);
+    throw new Error(`Failed to generate perspectives analysis: ${error.message}`);
   }
 };
 
@@ -198,7 +241,11 @@ Return ONLY valid JSON, no markdown formatting.`;
  */
 exports.getContext = async (article) => {
   try {
-    // Using new SDK - see response below
+    console.log('🔍 Generating context for:', article.title);
+
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured');
+    }
 
     const prompt = `Provide historical context for this news article:
 
@@ -232,14 +279,24 @@ Include 3-5 related topics for further exploration.
 
 Return ONLY valid JSON, no markdown formatting.`;
 
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-    // Response already available
-    const text = response.text;
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+
+    if (!result.response || !result.response.text) {
+      console.error('❌ Gemini response blocked or empty:', result);
+      throw new Error('Gemini API response was blocked or empty. Content may have triggered safety filters.');
+    }
+
+    const text = result.response.text();
+    console.log('✅ Received Gemini response, length:', text.length);
 
     const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleanText);
+    const parsedData = JSON.parse(cleanText);
+    console.log('✅ Successfully parsed context data');
+    return parsedData;
   } catch (error) {
-    console.error('Gemini API Error (getContext):', error.message);
-    throw new Error('Failed to generate context analysis');
+    console.error('❌ Gemini API Error (getContext):', error.message);
+    console.error('Error details:', error);
+    throw new Error(`Failed to generate context analysis: ${error.message}`);
   }
 };

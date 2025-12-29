@@ -198,7 +198,19 @@ const getDefaultMarketData = () => ({
  */
 const getUserReadingStats = async (userId) => {
   try {
-    const stats = await UserStats.findOne({ user: userId });
+    // Add 15-second timeout to MongoDB query
+    const statsPromise = UserStats.findOne({ user: userId }).lean();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('MongoDB query timeout')), 15000)
+    );
+
+    let stats;
+    try {
+      stats = await Promise.race([statsPromise, timeoutPromise]);
+    } catch (queryError) {
+      console.error('❌ UserStats query timeout:', queryError.message);
+      return getDefaultUserStats();
+    }
 
     if (!stats) {
       return getDefaultUserStats();

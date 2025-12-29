@@ -22,6 +22,30 @@ const TopicTrendTimeline = ({ data }) => {
     { key: 'HEALTH', name: 'Health', color: '#ec4899' },
   ];
 
+  // Transform backend data (one row per topic) to chart format (one row per day)
+  const transformData = (rawData) => {
+    if (!rawData || rawData.length === 0) return [];
+
+    const dateMap = {};
+    rawData.forEach(item => {
+      const date = item.date;
+      if (!dateMap[date]) {
+        dateMap[date] = { date };
+      }
+      // Map topicName to category key (case-insensitive)
+      const topicUpper = (item.topicName || item.topicId || '').toUpperCase();
+      if (topicUpper.includes('TECH')) dateMap[date].TECH = item.minutesRead;
+      else if (topicUpper.includes('FINANCE') || topicUpper.includes('BUSINESS')) dateMap[date].FINANCE = item.minutesRead;
+      else if (topicUpper.includes('POLITICS')) dateMap[date].POLITICS = item.minutesRead;
+      else if (topicUpper.includes('SCIENCE')) dateMap[date].SCIENCE = item.minutesRead;
+      else if (topicUpper.includes('HEALTH')) dateMap[date].HEALTH = item.minutesRead;
+    });
+
+    return Object.values(dateMap).sort((a, b) => new Date(a.date) - new Date(b.date));
+  };
+
+  const chartData = transformData(data);
+
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -75,49 +99,59 @@ const TopicTrendTimeline = ({ data }) => {
         </p>
       </div>
 
-      <ResponsiveContainer width="100%" height={300}>
-        <AreaChart
-          data={data}
-          margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" opacity={0.5} />
-          <XAxis
-            dataKey="date"
-            tickFormatter={formatDate}
-            tick={{ fontSize: 12, fill: '#64748b' }}
-            stroke="#cbd5e1"
-          />
-          <YAxis
-            label={{ value: 'Minutes', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#64748b' } }}
-            tick={{ fontSize: 12, fill: '#64748b' }}
-            stroke="#cbd5e1"
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }}
-            iconType="circle"
-            onClick={(e) => toggleCategory(e.dataKey)}
-            style={{ cursor: 'pointer' }}
-          />
-          {categories.map((category) => (
-            <Area
-              key={category.key}
-              type="monotone"
-              dataKey={category.key}
-              stackId="1"
-              stroke={category.color}
-              fill={category.color}
-              fillOpacity={0.6}
-              name={category.name}
-              hide={hiddenCategories.includes(category.key)}
-            />
-          ))}
-        </AreaChart>
-      </ResponsiveContainer>
+      {chartData.length > 0 ? (
+        <>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart
+              data={chartData}
+              margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" opacity={0.5} />
+              <XAxis
+                dataKey="date"
+                tickFormatter={formatDate}
+                tick={{ fontSize: 12, fill: '#64748b' }}
+                stroke="#cbd5e1"
+              />
+              <YAxis
+                label={{ value: 'Minutes', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#64748b' } }}
+                tick={{ fontSize: 12, fill: '#64748b' }}
+                stroke="#cbd5e1"
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend
+                wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }}
+                iconType="circle"
+                onClick={(e) => toggleCategory(e.dataKey)}
+                style={{ cursor: 'pointer' }}
+              />
+              {categories.map((category) => (
+                <Area
+                  key={category.key}
+                  type="monotone"
+                  dataKey={category.key}
+                  stackId="1"
+                  stroke={category.color}
+                  fill={category.color}
+                  fillOpacity={0.6}
+                  name={category.name}
+                  hide={hiddenCategories.includes(category.key)}
+                />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
 
-      <p className="text-xs text-text-secondary mt-4 italic">
-        Click legend items to toggle topics
-      </p>
+          <p className="text-xs text-text-secondary mt-4 italic">
+            Click legend items to toggle topics
+          </p>
+        </>
+      ) : (
+        <div className="h-[300px] flex items-center justify-center">
+          <p className="text-sm text-text-secondary italic">
+            No topic trend data available yet. Start reading to track topic trends over time!
+          </p>
+        </div>
+      )}
     </motion.div>
   );
 };

@@ -14,6 +14,7 @@ import RadarDietMap from "../components/neural-analytics/RadarDietMap";
 import IntegrityMonitor from "../components/neural-analytics/IntegrityMonitor";
 import SourceDiversityDonut from "../components/neural-analytics/SourceDiversityDonut";
 import InsightsCard from "../components/neural-analytics/InsightsCard";
+import TodaysActivityCard from "../components/neural-analytics/TodaysActivityCard";
 
 const NeuralAnalyticsPage = () => {
   const [loading, setLoading] = useState(true);
@@ -36,15 +37,21 @@ const NeuralAnalyticsPage = () => {
     try {
       const [analytics, topicTrend, integrity] = await Promise.all([
         getNeuralAnalyticsData(filters),
-        getTopicTrendData(),
-        getIntegrityData(),
+        getTopicTrendData(filters),
+        getIntegrityData(filters),
       ]);
 
+      // API returns { success: true, data: {...} }
+      // So we keep the whole response object
       setAnalyticsData(analytics);
       setTopicTrendData(topicTrend);
       setIntegrityData(integrity);
     } catch (error) {
       console.error("Failed to load analytics data:", error);
+      // Set empty objects so components don't crash
+      setAnalyticsData({ data: {} });
+      setTopicTrendData({ data: [] });
+      setIntegrityData({ data: {} });
     } finally {
       setLoading(false);
     }
@@ -177,24 +184,30 @@ const NeuralAnalyticsPage = () => {
         <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)] gap-6">
           {/* Left Column - Charts */}
           <div className="space-y-6">
-            <CognitiveImpactChart data={analyticsData.dailyAggregates} />
-            <TopicTrendTimeline data={topicTrendData} />
-            <SessionLogTable sessions={analyticsData.readingSessions} />
+            <CognitiveImpactChart data={analyticsData?.data?.dailyAggregates || []} />
+            <TopicTrendTimeline data={topicTrendData?.data || []} />
+            <SessionLogTable sessions={analyticsData?.data?.readingSessions || []} />
           </div>
 
           {/* Right Column - KPIs, Stats, Insights */}
           <div className="space-y-6">
-            {/* KPI Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 2xl:grid-cols-1 gap-4">
-              {analyticsData.kpiCards.map((kpi) => (
+            {/* Today's Activity Card */}
+            <TodaysActivityCard userStats={analyticsData?.data?.userStats} />
+
+            {/* KPI Cards Grid - Updated for 10 cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(analyticsData?.data?.kpiCards || []).map((kpi) => (
                 <KpiCard key={kpi.type} kpi={kpi} />
               ))}
             </div>
 
-            <RadarDietMap topicMetrics={analyticsData.topicMetrics} />
-            <IntegrityMonitor data={integrityData} />
-            <SourceDiversityDonut sourceMetrics={analyticsData.sourceMetrics} />
-            <InsightsCard insights={analyticsData.insights} />
+            <RadarDietMap
+              topicMetrics={analyticsData?.data?.topicMetrics || []}
+              topicMeasuring={analyticsData?.data?.topicMeasuring}
+            />
+            <IntegrityMonitor data={integrityData?.data} />
+            <SourceDiversityDonut sourceMetrics={analyticsData?.data?.sourceMetrics} />
+            <InsightsCard insights={analyticsData?.data?.insights || []} />
           </div>
         </div>
 

@@ -1,4 +1,16 @@
-import { FiShield, FiTrendingUp, FiZap, FiGlobe, FiActivity, FiBook } from 'react-icons/fi';
+import {
+  FiShield,
+  FiTrendingUp,
+  FiZap,
+  FiGlobe,
+  FiActivity,
+  FiBook,
+  FiTarget,
+  FiAward,
+  FiCheckCircle,
+  FiStar,
+  FiMonitor
+} from 'react-icons/fi';
 import { FaBrain } from 'react-icons/fa';
 import { BiMask } from 'react-icons/bi';
 
@@ -12,6 +24,11 @@ const iconMap = {
   BiMask: BiMask,
   FiActivity: FiActivity,
   FiBook: FiBook,
+  FiTarget: FiTarget,
+  FiAward: FiAward,
+  FiCheckCircle: FiCheckCircle,
+  FiStar: FiStar,
+  FiMonitor: FiMonitor,
 };
 
 /**

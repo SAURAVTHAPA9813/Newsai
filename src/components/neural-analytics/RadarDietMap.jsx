@@ -12,19 +12,36 @@ import {
 const RadarDietMap = ({ topicMetrics }) => {
   // Aggregate by category and normalize to 0-100
   const categoryData = {};
-  topicMetrics.forEach((topic) => {
-    if (!categoryData[topic.category]) {
-      categoryData[topic.category] = 0;
+  const metrics = topicMetrics || [];
+
+  console.log('📊 RadarDietMap received topicMetrics:', metrics);
+
+  metrics.forEach((topic) => {
+    // Get category with fallbacks
+    const category = topic.category || topic.topicName || topic.topicId || 'General';
+
+    if (!category || category === 'undefined') {
+      console.warn('⚠️ Topic missing category:', topic);
+      return; // Skip this topic
     }
-    categoryData[topic.category] += topic.minutesRead;
+
+    if (!categoryData[category]) {
+      categoryData[category] = 0;
+    }
+    categoryData[category] += topic.minutesRead || 0;
   });
 
   const totalMinutes = Object.values(categoryData).reduce((sum, val) => sum + val, 0);
 
-  const radarData = Object.entries(categoryData).map(([category, minutes]) => ({
-    category: category.charAt(0) + category.slice(1).toLowerCase().replace('_', ' '),
-    value: totalMinutes > 0 ? Math.round((minutes / totalMinutes) * 100) : 0,
-  }));
+  console.log('📊 Category data:', categoryData, 'Total minutes:', totalMinutes);
+
+  const radarData = Object.entries(categoryData)
+    .filter(([category]) => category && category !== 'undefined')
+    .map(([category, minutes]) => ({
+      category: category.charAt(0).toUpperCase() + category.slice(1).toLowerCase().replace('_', ' '),
+      value: totalMinutes > 0 ? Math.round((minutes / totalMinutes) * 100) : 0,
+      minutes: minutes
+    }));
 
   // Generate insight text
   const getInsightText = () => {
@@ -71,28 +88,36 @@ const RadarDietMap = ({ topicMetrics }) => {
         <p className="text-sm text-text-secondary">Radar Diet Map</p>
       </div>
 
-      <ResponsiveContainer width="100%" height={300}>
-        <RadarChart data={radarData}>
-          <PolarGrid stroke="#cbd5e1" opacity={0.3} />
-          <PolarAngleAxis
-            dataKey="category"
-            tick={{ fontSize: 12, fill: '#64748b' }}
-          />
-          <PolarRadiusAxis
-            angle={90}
-            domain={[0, 100]}
-            tick={{ fontSize: 10, fill: '#64748b' }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Radar
-            name="Reading Time"
-            dataKey="value"
-            stroke="#4169E1"
-            fill="#4169E1"
-            fillOpacity={0.5}
-          />
-        </RadarChart>
-      </ResponsiveContainer>
+      {radarData.length > 0 ? (
+        <ResponsiveContainer width="100%" height={300}>
+          <RadarChart data={radarData}>
+            <PolarGrid stroke="#cbd5e1" opacity={0.3} />
+            <PolarAngleAxis
+              dataKey="category"
+              tick={{ fontSize: 12, fill: '#64748b' }}
+            />
+            <PolarRadiusAxis
+              angle={90}
+              domain={[0, 100]}
+              tick={{ fontSize: 10, fill: '#64748b' }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Radar
+              name="Reading Time"
+              dataKey="value"
+              stroke="#4169E1"
+              fill="#4169E1"
+              fillOpacity={0.5}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="h-[300px] flex items-center justify-center">
+          <p className="text-sm text-text-secondary italic">
+            No reading data available yet. Start reading to see your topic distribution!
+          </p>
+        </div>
+      )}
 
       <div className="mt-4 p-3 bg-brand-blue/5 rounded-lg">
         <p className="text-xs text-text-secondary italic">{getInsightText()}</p>

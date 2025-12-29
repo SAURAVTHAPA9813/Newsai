@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiSearch, FiTrendingUp, FiClock, FiFilter, FiActivity } from 'react-icons/fi';
+import { FiSearch, FiTrendingUp, FiClock, FiFilter, FiActivity, FiLoader } from 'react-icons/fi';
 import dashboardAPI from '../services/dashboardAPI';
 import newsAPI from '../services/newsAPI';
 import { useAuth } from '../context/AuthContext';
+import { useActivityTracking } from '../context/ActivityTrackingContext';
+import articleTracker from '../services/articleTracker';
 import LiveIntelligenceBriefing from '../components/dashboard/LiveIntelligenceBriefing';
-import HolographicArticleCard from '../components/dashboard/HolographicArticleCard';
+import HolographicArticleCard, { ArticleCardSkeleton } from '../components/dashboard/HolographicArticleCard';
 import RightPanelWellness from '../components/dashboard/RightPanelWellness';
 import FocusZenMode from '../components/dashboard/FocusZenMode';
 import TrendRadarBar from '../components/dashboard/TrendRadarBar';
@@ -18,6 +20,9 @@ import CommandPalette from '../components/dashboard/CommandPalette';
 const ControlCenterPage = () => {
   // Auth context
   const { user } = useAuth();
+
+  // Activity tracking
+  const { trackPageVisit, trackPageTimeSpent, trackClick } = useActivityTracking();
 
   // State management
   const [readingMode, setReadingMode] = useState('15m');
@@ -40,11 +45,33 @@ const ControlCenterPage = () => {
   const [globalVectors, setGlobalVectors] = useState([]);
   const [allArticles, setAllArticles] = useState([]); // Store all articles before filtering
 
+  // Session-based activity stats
+  const [sessionStats, setSessionStats] = useState(() => {
+    // Try to restore from sessionStorage
+    const stored = sessionStorage.getItem('sessionStats');
+    return stored ? JSON.parse(stored) : {
+      articlesReadToday: 0,
+      timeSavedToday: 0,
+      sessionStartTime: Date.now()
+    };
+  });
+
   // User profile from auth context or defaults
   const userProfile = {
     industry: user?.preferences?.industry || 'General',
     region: user?.preferences?.region || 'Global'
   };
+
+  // Track page visit and time spent
+  useEffect(() => {
+    // Track page visit when component mounts
+    trackPageVisit('dashboard');
+
+    // Track time spent when component unmounts
+    return () => {
+      trackPageTimeSpent();
+    };
+  }, [trackPageVisit, trackPageTimeSpent]);
 
   // Load initial data
   useEffect(() => {
@@ -221,10 +248,44 @@ const ControlCenterPage = () => {
   };
 
   const handleArticleClick = (article) => {
+    // Track article click
+    trackClick('article', article.id, article.title, {
+      category: article.category,
+      source: article.source?.name
+    });
+
+    // 🎯 UNIVERSAL ARTICLE TRACKING - Track this article view
+    const sessionId = articleTracker.trackArticleView(article);
+    console.log('🔍 Started tracking article session:', sessionId);
+
+    // Calculate time saved based on reading mode
+    const timeSavedPerArticle = {
+      '5m': 3,   // 5 min mode saves ~3 min per article
+      '15m': 5,  // 15 min mode saves ~5 min per article
+      '30m': 7   // 30 min mode saves ~7 min per article
+    };
+
+    // Update session stats
+    const newStats = {
+      ...sessionStats,
+      articlesReadToday: sessionStats.articlesReadToday + 1,
+      timeSavedToday: sessionStats.timeSavedToday + (timeSavedPerArticle[readingMode] || 5)
+    };
+
+    setSessionStats(newStats);
+    sessionStorage.setItem('sessionStats', JSON.stringify(newStats));
+
     setFocusedArticle(article);
   };
 
   const closeFocusMode = () => {
+    // 🎯 End article tracking session when closing
+    if (focusedArticle) {
+      const articleId = focusedArticle.id || focusedArticle.url;
+      articleTracker.endArticleSession(articleId, 100); // 100% completion when explicitly closed
+      console.log('✅ Ended tracking session for:', focusedArticle.title);
+    }
+
     setFocusedArticle(null);
   };
 
@@ -586,39 +647,24 @@ const ControlCenterPage = () => {
               </motion.div>
 
               {/* Articles Grid */}
-              {loading ? (
-                <motion.div
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-1 md:grid-cols-2 gap-6"
-                >
-                  {[1, 2, 3, 4].map((i) => (
-                    <motion.div
-                      key={i}
-                      variants={cardVariants}
-                      className="h-96 rounded-2xl animate-pulse"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.6)',
-                        backdropFilter: 'blur(10px)'
-                      }}
-                    ></motion.div>
-                  ))}
-                </motion.div>
-              ) : (
-                <motion.div
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-1 md:grid-cols-2 gap-6"
-                  data-articles-section
-                >
-                  {articles.map((article) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {loading ? (
+                  // Show skeleton cards while loading
+                  Array.from({ length: getArticleLimitForMode(readingMode) }).map((_, idx) => (
+                    <ArticleCardSkeleton key={`skeleton-${idx}`} />
+                  ))
+                ) : articles.length > 0 ? (
+                  articles.map((article, index) => (
                     <motion.div
                       key={article.id}
-                      variants={cardVariants}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.4,
+                        delay: index * 0.05, // Staggered animation
+                        ease: 'easeOut'
+                      }}
                       whileHover={{ y: -10, scale: 1.02 }}
-                      transition={{ duration: 0.3 }}
                     >
                       <HolographicArticleCard
                         article={article}
@@ -626,26 +672,16 @@ const ControlCenterPage = () => {
                         onClick={() => handleArticleClick(article)}
                       />
                     </motion.div>
-                  ))}
-                </motion.div>
-              )}
+                  ))
+                ) : (
+                  <div className="col-span-2 flex flex-col items-center justify-center py-12 text-center">
+                    <FiActivity className="w-16 h-16 text-gray-400 mb-4" />
+                    <p className="text-lg text-gray-600">No articles found</p>
+                  </div>
+                )}
+              </div>
 
-              {/* Load More Button */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                className="text-center mt-12"
-              >
-                <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 20px 40px rgba(65, 105, 225, 0.3)' }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-10 py-4 bg-dashboard-hero text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 mx-auto hover-gradient-shift"
-                >
-                  <FiActivity className="w-5 h-5" />
-                  Load More Intelligence
-                </motion.button>
-              </motion.div>
+             
             </div>
 
             {/* Right Panel - Sidebar Widgets */}
@@ -684,19 +720,27 @@ const ControlCenterPage = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-text-secondary">Articles Read</span>
                       <span className="text-lg font-bold text-gradient-serenity">
-                        {userStats?.articlesReadToday || 0}
+                        {sessionStats.articlesReadToday}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-text-secondary">Time Saved</span>
                       <span className="text-lg font-bold text-gradient-serenity">
-                        {userStats?.timeSaved || 0}m
+                        {sessionStats.timeSavedToday}m
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-text-secondary">Focus Score</span>
                       <span className="text-lg font-bold text-gradient-serenity">
-                        {userStats?.focusScore || 0}%
+                        {(() => {
+                          // Calculate focus score: base 70 + streak bonus + articles bonus
+                          const currentStreak = userStats?.currentStreak || 0;
+                          const articlesRead = sessionStats.articlesReadToday;
+                          const focusScore = articlesRead > 0
+                            ? Math.min(Math.round(70 + (currentStreak * 2) + (articlesRead * 5)), 100)
+                            : 0;
+                          return focusScore;
+                        })()}%
                       </span>
                     </div>
                   </div>

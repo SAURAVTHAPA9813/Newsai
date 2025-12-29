@@ -44,7 +44,7 @@ Return ONLY a valid JSON array with this EXACT format (no markdown, no code bloc
 
 Make sure the JSON is valid and parseable. Return ONLY the JSON array, nothing else.`;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 

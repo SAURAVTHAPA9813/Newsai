@@ -1,39 +1,41 @@
-import { motion } from 'framer-motion';
-import { FiClock, FiBookOpen, FiCheckCircle, FiBookmark } from 'react-icons/fi';
+import { motion } from "framer-motion";
+import { FiClock, FiBookOpen, FiCheckCircle, FiBookmark } from "react-icons/fi";
 
 const SessionLogTable = ({ sessions }) => {
+  const sessionList = sessions || [];
+
   const formatTime = (isoString) => {
     const date = new Date(isoString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getMoodColor = (mood) => {
     switch (mood) {
-      case 'CALM':
-        return 'bg-green-100 text-green-700';
-      case 'FOCUSED':
-        return 'bg-blue-100 text-blue-700';
-      case 'ANXIOUS':
-        return 'bg-orange-100 text-orange-700';
-      case 'OVERWHELMED':
-        return 'bg-red-100 text-red-700';
+      case "CALM":
+        return "bg-green-100 text-green-700";
+      case "FOCUSED":
+        return "bg-blue-100 text-blue-700";
+      case "ANXIOUS":
+        return "bg-orange-100 text-orange-700";
+      case "OVERWHELMED":
+        return "bg-red-100 text-red-700";
       default:
-        return 'bg-gray-100 text-gray-700';
+        return "bg-gray-100 text-gray-700";
     }
   };
 
   const getModeIcon = (mode) => {
     switch (mode) {
-      case 'DEEP_DIVE':
+      case "DEEP_DIVE":
         return <FiBookOpen className="w-4 h-4 text-blue-600" />;
-      case 'INTENTIONAL':
+      case "INTENTIONAL":
         return <FiCheckCircle className="w-4 h-4 text-green-600" />;
-      case 'SKIM':
+      case "SKIM":
         return <FiClock className="w-4 h-4 text-gray-600" />;
       default:
         return null;
@@ -42,15 +44,20 @@ const SessionLogTable = ({ sessions }) => {
 
   const getKeyActions = (events) => {
     const actionIcons = [];
-    if (events.some((e) => e.type === 'OPENED_VERIFY_HUB')) {
+    if (events?.some((e) => e.eventType === "OPENED_VERIFY_HUB")) {
       actionIcons.push(
-        <span key="verify" className="text-xs bg-verified-green/20 text-verified-green px-2 py-1 rounded">
+        <span
+          key="verify"
+          className="text-xs bg-verified-green/20 text-verified-green px-2 py-1 rounded"
+        >
           Verified
         </span>
       );
     }
-    if (events.some((e) => e.type === 'SAVED')) {
-      actionIcons.push(<FiBookmark key="saved" className="w-3 h-3 text-brand-blue" />);
+    if (events?.some((e) => e.eventType === "SAVED")) {
+      actionIcons.push(
+        <FiBookmark key="saved" className="w-3 h-3 text-brand-blue" />
+      );
     }
     return actionIcons;
   };
@@ -97,9 +104,16 @@ const SessionLogTable = ({ sessions }) => {
             </tr>
           </thead>
           <tbody>
-            {sessions.slice(0, 15).map((session, index) => (
+            {sessionList.length === 0 ? (
+              <tr>
+                <td colSpan="7" className="py-8 text-center text-text-secondary">
+                  No reading sessions yet. Start reading articles to see your activity!
+                </td>
+              </tr>
+            ) : (
+              sessionList.slice(0, 15).map((session, index) => (
               <motion.tr
-                key={session.id}
+                key={session._id || session.id || index}
                 className="border-b border-brand-blue/5 hover:bg-brand-blue/5 transition-colors"
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -109,10 +123,10 @@ const SessionLogTable = ({ sessions }) => {
                   {formatTime(session.startedAt)}
                 </td>
                 <td className="py-3 px-2 text-xs text-text-dark font-medium">
-                  {session.topicName}
+                  {session.topic?.name || session.topicName || "Unknown"}
                 </td>
                 <td className="py-3 px-2 text-xs text-text-secondary">
-                  {session.sourceName}
+                  {session.source?.name || session.sourceName || "Unknown"}
                 </td>
                 <td className="py-3 px-2 text-xs text-text-dark text-right">
                   {session.durationMinutes} min
@@ -137,14 +151,14 @@ const SessionLogTable = ({ sessions }) => {
                   </div>
                 </td>
               </motion.tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>
 
-      {sessions.length > 15 && (
+      {sessionList.length > 15 && (
         <p className="text-xs text-text-secondary mt-4 text-center">
-          Showing 15 of {sessions.length} sessions
+          Showing 15 of {sessionList.length} sessions
         </p>
       )}
     </motion.div>

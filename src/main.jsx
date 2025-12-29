@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react'
 import App from './App.jsx'
 import './styles/index.css'
 import { AuthProvider } from './context/AuthContext'
+import { ActivityTrackingProvider } from './context/ActivityTrackingContext'
 
 // Initialize Sentry if DSN is provided
 if (import.meta.env.VITE_SENTRY_DSN) {
@@ -30,7 +31,9 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
-      <App />
+      <ActivityTrackingProvider>
+        <App />
+      </ActivityTrackingProvider>
     </AuthProvider>
   </React.StrictMode>,
 )

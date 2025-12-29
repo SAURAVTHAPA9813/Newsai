@@ -1,10 +1,10 @@
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const IntelligenceBriefing = require('../models/IntelligenceBriefing');
 const newsService = require('./newsService');
 const trendAnalysisService = require('./trendAnalysisService');
 
-// Initialize Gemini AI with correct SDK
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * Generate intelligence briefing based on articles
@@ -60,12 +60,9 @@ Guidelines:
 
 Return ONLY valid JSON, no markdown formatting.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt
-    });
-
-    const text = response.text;
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
 
     // Parse the JSON response
     const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();

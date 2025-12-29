@@ -33,7 +33,22 @@ const trendingArticlesSchema = new mongoose.Schema({
       category: String,
       publishedAt: Date,
       author: String,
-      content: String
+      content: String,
+      // Analysis fields (from articleAnalysisService)
+      sourceScore: Number,
+      anxietyScore: Number,
+      stressScore: Number,
+      verificationBadge: String,
+      impactTags: [String], // ['money', 'health', 'career', 'location']
+      lifeImpact: {
+        financial: Number,
+        career: Number,
+        personal: Number,
+        local: Number
+      },
+      engagement: Number,
+      sourceTier: String,
+      stressLevel: String
     }],
     tech: [{
       title: String,
@@ -47,7 +62,21 @@ const trendingArticlesSchema = new mongoose.Schema({
       category: String,
       publishedAt: Date,
       author: String,
-      content: String
+      content: String,
+      sourceScore: Number,
+      anxietyScore: Number,
+      stressScore: Number,
+      verificationBadge: String,
+      impactTags: [String],
+      lifeImpact: {
+        financial: Number,
+        career: Number,
+        personal: Number,
+        local: Number
+      },
+      engagement: Number,
+      sourceTier: String,
+      stressLevel: String
     }],
     business: [{
       title: String,
@@ -61,7 +90,21 @@ const trendingArticlesSchema = new mongoose.Schema({
       category: String,
       publishedAt: Date,
       author: String,
-      content: String
+      content: String,
+      sourceScore: Number,
+      anxietyScore: Number,
+      stressScore: Number,
+      verificationBadge: String,
+      impactTags: [String],
+      lifeImpact: {
+        financial: Number,
+        career: Number,
+        personal: Number,
+        local: Number
+      },
+      engagement: Number,
+      sourceTier: String,
+      stressLevel: String
     }],
     sports: [{
       title: String,
@@ -75,7 +118,21 @@ const trendingArticlesSchema = new mongoose.Schema({
       category: String,
       publishedAt: Date,
       author: String,
-      content: String
+      content: String,
+      sourceScore: Number,
+      anxietyScore: Number,
+      stressScore: Number,
+      verificationBadge: String,
+      impactTags: [String],
+      lifeImpact: {
+        financial: Number,
+        career: Number,
+        personal: Number,
+        local: Number
+      },
+      engagement: Number,
+      sourceTier: String,
+      stressLevel: String
     }],
     health: [{
       title: String,
@@ -89,7 +146,21 @@ const trendingArticlesSchema = new mongoose.Schema({
       category: String,
       publishedAt: Date,
       author: String,
-      content: String
+      content: String,
+      sourceScore: Number,
+      anxietyScore: Number,
+      stressScore: Number,
+      verificationBadge: String,
+      impactTags: [String],
+      lifeImpact: {
+        financial: Number,
+        career: Number,
+        personal: Number,
+        local: Number
+      },
+      engagement: Number,
+      sourceTier: String,
+      stressLevel: String
     }],
     politics: [{
       title: String,
@@ -103,7 +174,21 @@ const trendingArticlesSchema = new mongoose.Schema({
       category: String,
       publishedAt: Date,
       author: String,
-      content: String
+      content: String,
+      sourceScore: Number,
+      anxietyScore: Number,
+      stressScore: Number,
+      verificationBadge: String,
+      impactTags: [String],
+      lifeImpact: {
+        financial: Number,
+        career: Number,
+        personal: Number,
+        local: Number
+      },
+      engagement: Number,
+      sourceTier: String,
+      stressLevel: String
     }]
   },
 
@@ -140,7 +225,7 @@ trendingArticlesSchema.statics.getTodayArticles = async function() {
   return await this.findOne({
     date: today,
     status: 'completed'
-  });
+  }).lean(); // Use lean() for faster queries
 };
 
 // Static method to check if generation is needed

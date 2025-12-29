@@ -1,10 +1,248 @@
 # NewsAI - AI-Powered News Intelligence Platform
 
+# instruction for you to follow
+
+CORE OPERATING MODE (READ CAREFULLY)
+
+You are NOT here to be fast.
+You are NOT here to be creative.
+You are here to be correct, boring, explicit, and reliable.
+
+If there is a conflict between:
+
+Speed vs correctness → choose correctness
+
+Simplicity vs correctness → choose correctness
+
+User convenience vs correctness → choose correctness
+
+1. TASK INTAKE PROTOCOL (MANDATORY)
+
+Before writing any code, you MUST:
+
+1.1 Parse the task and explicitly identify:
+
+Goal of the change
+
+Files involved
+
+Scope boundaries (what must NOT change)
+
+Language + version
+
+Framework + version
+
+Runtime environment
+
+If any of these are missing, STOP and ASK.
+
+1.2 Ask Clarifying Questions FIRST
+
+You MUST ask questions when:
+
+Multiple valid implementations exist
+
+Requirements are ambiguous
+
+Architectural decisions are implied but not stated
+
+A change could affect other parts of the system
+
+Rules:
+
+Number questions (1, 2, 3…)
+
+Prefer yes/no when possible
+
+Do not proceed until answered
+
+2. ABSOLUTE PROHIBITIONS (ZERO TOLERANCE)
+
+The following are strictly forbidden:
+
+❌ Partial implementations
+❌ Placeholder logic
+❌ Pseudocode
+❌ “TODO”, “FIXME”, “…”, or similar
+❌ “Assume this exists”
+❌ Silent omission of logic
+❌ Skipping error handling
+❌ Inventing APIs, libraries, configs, or behaviors
+❌ Refactoring unrelated code
+❌ Changing formatting/style unless requested
+
+If you cannot implement something fully and correctly → STOP AND ASK.
+
+3. COMPLETENESS RULES (NON-NEGOTIABLE)
+   3.1 File Output Rules
+
+If a file is modified → output the entire file
+
+Never output fragments unless explicitly requested
+
+Preserve existing code unless change is required
+
+3.2 Dependency Awareness
+
+Before using:
+
+A function
+
+A class
+
+A config value
+
+An environment variable
+
+A package
+
+You MUST verify it already exists or define it explicitly.
+
+4. MULTI-FILE & PROJECT AWARENESS
+
+When working in a project:
+
+You MUST:
+
+Respect existing architecture and patterns
+
+Maintain naming conventions
+
+Keep consistency across files
+
+State explicitly which files are changed and why
+
+You MUST NOT:
+
+Rewrite architecture unless asked
+
+Introduce new patterns casually
+
+Duplicate logic that already exists
+
+If context is insufficient → ASK.
+
+5. NO-HALLUCINATION GUARANTEE
+
+If you are uncertain about anything:
+
+Say “I am not certain”
+
+Explain what is uncertain
+
+Ask for confirmation
+
+Never guess.
+Never “probably”.
+Never fabricate.
+
+Accuracy beats confidence.
+
+6. ERROR HANDLING & EDGE CASES
+
+All production code MUST include:
+
+Proper error handling
+
+Defensive checks
+
+Meaningful error messages
+
+Failure-safe behavior
+
+If error handling is intentionally omitted:
+
+You MUST explain why
+
+And get confirmation
+
+7. SELF-VERIFICATION STEP (MANDATORY)
+
+Before final output, internally verify:
+
+Code compiles / runs
+
+No missing imports
+
+No undefined variables
+
+No unused variables
+
+All paths handled (success + failure)
+
+No silent failures
+
+No logical gaps
+
+If verification fails → FIX IT before responding.
+
+8. TRUNCATION & LENGTH CONTROL
+
+If output may exceed limits:
+
+Warn BEFORE starting
+
+Ask permission to continue
+
+Continue exactly where cut off
+
+Never restart.
+Never truncate silently.
+
+9. CHANGE ISOLATION PRINCIPLE
+
+When asked to change X:
+
+Only change X
+
+Do not “improve” Y
+
+Do not refactor Z
+
+Do not optimize unless requested
+
+Surgical changes only.
+
+10. COMMUNICATION STYLE
+
+Default output:
+
+Code first
+
+Minimal explanation
+
+No filler
+
+No motivational text
+
+No emojis
+
+Explain ONLY when:
+
+Asked
+
+Tradeoffs exist
+
+Risk is involved
+
+11. FAILURE MODE (IMPORTANT)
+
+If you cannot meet all rules above:
+
+Say so explicitly
+
+Explain why
+
+Ask what to do next
+
+Silently producing flawed code is unacceptable.
+
 ## Project Overview
 
 NewsAI is a full-stack news aggregation and analysis platform that uses AI to provide personalized, intelligent news experiences. The platform combines real-time news from multiple providers with Google Gemini AI for analysis, offering features like fact-checking, market impact analysis, and personalized news feeds.
 
 ### Project Type
+
 Full-Stack Web Application (MERN Stack + AI Integration)
 
 ### Quick Start
@@ -30,6 +268,7 @@ npm run dev
 ### Tech Stack
 
 **Frontend:**
+
 - React 18.3 + Vite
 - React Router for navigation
 - Tailwind CSS for styling
@@ -38,6 +277,7 @@ npm run dev
 - Recharts for data visualization
 
 **Backend:**
+
 - Node.js + Express
 - MongoDB + Mongoose
 - JWT authentication
@@ -46,6 +286,7 @@ npm run dev
 - Finnhub API for market data (optional)
 
 **AI Features:**
+
 - Google Gemini 1.5 Flash for article analysis
 - Custom AI modules: Explain, Context Timeline, Market Impact, Perspectives
 - Real-time fact-checking with source verification
@@ -120,24 +361,27 @@ Newsai/
 ## Key Features & Implementation
 
 ### 1. Control Center Dashboard
+
 **Location:** `src/pages/ControlCenterPage.jsx`
 
 The main user interface for news consumption with AI-powered features.
 
 **Key State Management:**
+
 ```javascript
-- articles           // Current filtered articles based on reading mode
-- allArticles        // Full article dataset before filtering
-- activeInterest     // Currently selected category (null = all news)
-- readingMode        // Time-based article limit: '5m'|'15m'|'30m'
-- volatility         // Global news volatility index (0-100)
-- trendingTopics     // Extracted trending entities with momentum
-- marketData         // Real-time stock/crypto prices
-- userStats          // User reading activity and XP
-- globalVectors      // Trending news vectors with categories
+-articles - // Current filtered articles based on reading mode
+  allArticles - // Full article dataset before filtering
+  activeInterest - // Currently selected category (null = all news)
+  readingMode - // Time-based article limit: '5m'|'15m'|'30m'
+  volatility - // Global news volatility index (0-100)
+  trendingTopics - // Extracted trending entities with momentum
+  marketData - // Real-time stock/crypto prices
+  userStats - // User reading activity and XP
+  globalVectors; // Trending news vectors with categories
 ```
 
 **Reading Mode Behavior:**
+
 - **5m mode:** Shows 6 articles, 2-sentence summaries
 - **15m mode:** Shows 12 articles, 4-sentence summaries
 - **30m mode:** Shows 20 articles, 6-sentence summaries
@@ -145,6 +389,7 @@ The main user interface for news consumption with AI-powered features.
 - allArticles stores full dataset for efficient filtering
 
 **Interest Filtering Flow:**
+
 1. User clicks interest chip (Finance, Tech, Healthcare, Markets, Global)
 2. `activeInterest` state updated in ControlCenterPage
 3. New API call to `/dashboard/overview?category={category}`
@@ -153,11 +398,13 @@ The main user interface for news consumption with AI-powered features.
 6. Active interest highlighted in PersonalizationStrip
 
 ### 2. Multi-Provider News System
+
 **Location:** `server/services/newsService.js`
 
 Resilient news aggregation with automatic failover across 5 providers.
 
 **Provider Chain (priority order):**
+
 ```javascript
 1. NewsAPI.org     → 100 req/day  | Quality: 100 | Primary provider
 2. The Guardian    → 500 req/day  | Quality: 95  | High-quality fallback
@@ -167,6 +414,7 @@ Resilient news aggregation with automatic failover across 5 providers.
 ```
 
 **Category Mapping:**
+
 ```javascript
 // Frontend → Backend NewsAPI mapping
 'finance'    → 'business'
@@ -177,37 +425,44 @@ Resilient news aggregation with automatic failover across 5 providers.
 ```
 
 **Caching Strategy:**
+
 - **Headlines:** 5-minute cache to reduce API usage
 - **Cache Key Format:** `headlines:{page}:{limit}` or `{category}:{page}:{limit}`
 - **Cleanup:** Automatic cache cleanup every 15 minutes
 - **Cache Miss:** Triggers multi-provider fallback chain
 
 **Key Functions:**
+
 - `getHeadlines(page, limit)` - General news headlines
 - `getNewsByCategory(category, page)` - Category-specific news
 - `searchNews(query, page, limit)` - Search functionality
 - `getArticleDetails(articleId)` - Single article retrieval
 
 ### 3. AI Analysis Modules
+
 **Locations:**
+
 - Frontend: `src/components/aimodules/`
 - Backend: `server/services/geminiService.js`
 
 **Available Modules:**
 
 1. **Explain Module** (`/ai/explain`)
+
    - ELI5 explanations of complex topics
    - Adjustable reading level
    - Key terms with definitions
    - Related concepts
 
 2. **Context Timeline Module** (`/ai/context-timeline`)
+
    - Historical background
    - Chronological timeline of events
    - Key milestones
    - How we got here narrative
 
 3. **Market Impact Module** (`/ai/market-impact`)
+
    - Financial/economic impact analysis
    - Affected sectors and companies
    - Short-term and long-term implications
@@ -221,6 +476,7 @@ Resilient news aggregation with automatic failover across 5 providers.
    - Balanced overview
 
 **AI Request Flow:**
+
 ```
 User clicks AI button
   → AICommandToolbar dispatches request
@@ -236,11 +492,13 @@ User clicks AI button
 **Module Configuration:** See `server/services/geminiService.js:23-83` for data structures
 
 ### 4. Trending Topics & Global Vectors
+
 **Location:** `server/services/trendAnalysisService.js`
 
 Extracts trending topics from articles using entity recognition and keyword analysis.
 
 **Algorithm:**
+
 1. Fetch recent headlines (50 articles)
 2. Extract tracked entities (OpenAI, Google, Tesla, etc.)
 3. Score entities based on mention frequency + recency weight
@@ -250,6 +508,7 @@ Extracts trending topics from articles using entity recognition and keyword anal
 7. Categorize trends (tech, economy, crypto, health, etc.)
 
 **Output Format:**
+
 ```javascript
 {
   name: "OpenAI",           // Entity or keyword phrase
@@ -262,15 +521,18 @@ Extracts trending topics from articles using entity recognition and keyword anal
 **Integration:** Called by `dashboardService.js` in `getGlobalVectors()` function
 
 ### 5. User Authentication & Gamification
+
 **Models:** `server/models/User.js`, `server/models/UserStats.js`
 
 **Authentication:**
+
 - JWT-based with httpOnly cookies (TODO: full implementation)
 - MongoDB User model with bcrypt password hashing
 - Protected routes use `auth.js` middleware
 - Session persistence in AuthContext
 
 **Gamification System:**
+
 ```javascript
 // XP Awards
 - Read article:        +10 XP
@@ -294,9 +556,11 @@ Extracts trending topics from articles using entity recognition and keyword anal
 **Activity Tracking:** `server/middleware/activityTracker.js` logs all interactions
 
 ### 6. Sidebar Navigation
+
 **Location:** `src/components/sidebar/GlassSidebar.jsx`
 
 **Navigation Items:**
+
 ```javascript
 1. Control Center     → /dashboard           (Main dashboard)
 2. Trending          → /trending             (Trending news)
@@ -307,6 +571,7 @@ Extracts trending topics from articles using entity recognition and keyword anal
 ```
 
 **Locked Items:**
+
 - Set `locked: true` in nav item config
 - Renders as non-clickable div (not Link)
 - Shows lock icon next to name
@@ -361,10 +626,10 @@ VITE_APP_ENV=development
 
 ```javascript
 // 1. Imports
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import ComponentName from './ComponentName';
-import { apiFunction } from '../services/api';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import ComponentName from "./ComponentName";
+import { apiFunction } from "../services/api";
 
 // 2. Component Definition
 const MyComponent = ({ prop1, prop2 }) => {
@@ -391,11 +656,7 @@ const MyComponent = ({ prop1, prop2 }) => {
   if (loading) return <LoadingSpinner />;
   if (!data) return <EmptyState />;
 
-  return (
-    <div>
-      {/* Component JSX */}
-    </div>
-  );
+  return <div>{/* Component JSX */}</div>;
 };
 
 // 8. Export
@@ -410,21 +671,22 @@ module.exports = {
   async functionName(params) {
     try {
       // Business logic
-      console.log('🔍 Descriptive log message');
+      console.log("🔍 Descriptive log message");
       const result = await operation();
-      console.log('✅ Success message');
+      console.log("✅ Success message");
       return result;
     } catch (error) {
-      console.error('❌ Error message:', error);
-      throw new Error('Descriptive error for client');
+      console.error("❌ Error message:", error);
+      throw new Error("Descriptive error for client");
     }
-  }
+  },
 };
 ```
 
 ### API Response Format
 
 **Success Response:**
+
 ```javascript
 {
   success: true,
@@ -434,6 +696,7 @@ module.exports = {
 ```
 
 **Error Response:**
+
 ```javascript
 {
   success: false,
@@ -494,6 +757,7 @@ refactor/*        # Code refactoring: refactor/dashboard-state
 ### Adding a New AI Module
 
 **1. Backend Configuration** (`server/services/geminiService.js`):
+
 ```javascript
 // Add to MODULE_CONFIGS
 MARKET_SENTIMENT: {
@@ -509,13 +773,15 @@ MARKET_SENTIMENT: {
 ```
 
 **2. Backend Route** (if custom logic needed in `server/routes/ai.js`):
+
 ```javascript
-router.post('/market-sentiment', auth, async (req, res) => {
+router.post("/market-sentiment", auth, async (req, res) => {
   // Custom handling if needed
 });
 ```
 
 **3. Frontend Service** (`src/services/aiAPI.js`):
+
 ```javascript
 export const analyzeMarketSentiment = (articleId) => {
   return apiClient.post(`/ai/market-sentiment`, { articleId });
@@ -523,6 +789,7 @@ export const analyzeMarketSentiment = (articleId) => {
 ```
 
 **4. Frontend Component** (`src/components/aimodules/MarketSentimentModule.jsx`):
+
 ```javascript
 // Create component with loading/error/success states
 // Handle module-specific data structure
@@ -534,26 +801,30 @@ export const analyzeMarketSentiment = (articleId) => {
 **1. Get API Key** from provider's website
 
 **2. Add to `.env.example`** and your local `.env`:
+
 ```bash
 NEW_PROVIDER_API_KEY=your-api-key
 ```
 
 **3. Add Provider Config** (`server/services/newsService.js`):
+
 ```javascript
 const PROVIDERS = [
   // ... existing providers
   {
-    name: 'newprovider',
+    name: "newprovider",
     priority: 6,
     quality: 85,
     enabled: !!process.env.NEW_PROVIDER_API_KEY,
     adapter: async (page, limit, category) => {
-      const response = await axios.get('provider-api-url', {
-        params: { /* provider-specific params */ }
+      const response = await axios.get("provider-api-url", {
+        params: {
+          /* provider-specific params */
+        },
       });
 
       // Normalize to standard format
-      return response.data.articles.map(article => ({
+      return response.data.articles.map((article) => ({
         id: article.id,
         title: article.headline,
         description: article.summary,
@@ -561,10 +832,10 @@ const PROVIDERS = [
         imageUrl: article.image,
         source: article.publisher,
         publishedAt: article.date,
-        category: category || 'general'
+        category: category || "general",
       }));
-    }
-  }
+    },
+  },
 ];
 ```
 
@@ -573,13 +844,16 @@ const PROVIDERS = [
 ### Debugging Common Issues
 
 #### "API Error: timeout of 30000ms exceeded"
+
 **Causes:**
+
 - Backend server not running on port 5000
 - MongoDB connection failed
 - Service layer throwing unhandled errors
 - Missing required environment variables
 
 **Debug Steps:**
+
 1. Check `server` terminal for error logs
 2. Verify MongoDB connection: `MongoDB Connected Successfully`
 3. Check for service errors (especially trendAnalysisService)
@@ -587,15 +861,19 @@ const PROVIDERS = [
 5. Check backend logs for specific function errors
 
 #### "trendAnalysisService.getTrendingTopics is not a function"
+
 **Cause:** Missing function export in service file
 
 **Fix:**
+
 1. Verify function exists in `server/services/trendAnalysisService.js`
 2. Check `module.exports` includes the function
 3. Restart server after adding function
 
 #### Category Filtering Not Working
+
 **Debug Flow:**
+
 1. Check browser console: "🎯 Interest clicked: Tech"
 2. Verify API call: "🔍 Dashboard Overview Request: { category: 'tech' }"
 3. Check backend mapping: tech → technology
@@ -605,7 +883,9 @@ const PROVIDERS = [
 **Common Issue:** Category name mismatch between frontend and backend
 
 #### Articles Not Loading
+
 **Debug Steps:**
+
 1. Open browser Network tab
 2. Check `/dashboard/overview` request status
 3. If 500: Check backend logs for error
@@ -615,6 +895,7 @@ const PROVIDERS = [
 ### Performance Optimization Checklist
 
 **Backend:**
+
 - [ ] Enable response caching (5min for headlines)
 - [ ] Add database indexes for frequent queries
 - [ ] Implement request debouncing for AI calls
@@ -622,6 +903,7 @@ const PROVIDERS = [
 - [ ] Add rate limiting middleware
 
 **Frontend:**
+
 - [ ] Use React.memo for expensive components
 - [ ] Implement virtualization for long article lists
 - [ ] Add code splitting for AI modules (React.lazy)
@@ -633,6 +915,7 @@ const PROVIDERS = [
 ### Manual Testing Checklist
 
 **Dashboard Functionality:**
+
 - [ ] Articles load on page mount
 - [ ] Reading mode changes: 5m→6 articles, 15m→12, 30m→20
 - [ ] Interest filter shows category-specific news
@@ -642,6 +925,7 @@ const PROVIDERS = [
 - [ ] Global vectors show trending topics
 
 **AI Modules:**
+
 - [ ] Explain module loads ELI5 content
 - [ ] Context Timeline shows chronological events
 - [ ] Market Impact displays financial analysis
@@ -650,6 +934,7 @@ const PROVIDERS = [
 - [ ] Error messages display properly
 
 **Error Handling:**
+
 - [ ] Graceful fallback when API keys missing
 - [ ] Multi-provider fallback works correctly
 - [ ] Timeout errors show user-friendly message
@@ -671,12 +956,14 @@ npm run test:e2e              # End-to-end tests
 ## Known Issues & Roadmap
 
 ### Critical (Fix ASAP)
+
 - [ ] Implement proper JWT authentication with httpOnly cookies
 - [ ] Fix Mongoose duplicate schema index warnings
 - [ ] Add request rate limiting to prevent API abuse
 - [ ] Implement proper error boundaries in React
 
 ### High Priority
+
 - [ ] Add AI response streaming for better UX
 - [ ] Implement article pagination (infinite scroll)
 - [ ] Create user preferences/settings page
@@ -684,6 +971,7 @@ npm run test:e2e              # End-to-end tests
 - [ ] Implement article bookmarking system
 
 ### Medium Priority
+
 - [ ] Add search functionality within dashboard
 - [ ] Create mobile-responsive design
 - [ ] Implement sharing functionality
@@ -692,6 +980,7 @@ npm run test:e2e              # End-to-end tests
 - [ ] Build fact-checking Verify Hub (/verify-hub)
 
 ### Low Priority / Nice-to-Have
+
 - [ ] Dark mode support
 - [ ] Export articles to PDF/Markdown
 - [ ] Social features (comments, discussions)
@@ -704,6 +993,7 @@ npm run test:e2e              # End-to-end tests
 ### Production Checklist
 
 **Environment:**
+
 - [ ] Set `NODE_ENV=production`
 - [ ] Use strong `JWT_SECRET` (64+ chars)
 - [ ] Configure production MongoDB cluster
@@ -712,6 +1002,7 @@ npm run test:e2e              # End-to-end tests
 - [ ] Configure rate limiting
 
 **Build:**
+
 ```bash
 # Frontend
 npm run build                 # Creates dist/ folder
@@ -721,6 +1012,7 @@ npm run build                 # Creates dist/ folder
 ```
 
 **Environment Variables:**
+
 - Never commit `.env` files
 - Use hosting platform's env var management
 - Rotate API keys periodically
@@ -735,6 +1027,7 @@ npm run build                 # Creates dist/ folder
 > Before you start the task, review all inputs and ask me any questions you need to improve the chances of successfully producing the output I am looking for. Number all the questions and if possible, make them yes or no answers so I can quickly, easily, and clearly answer the questions.
 
 **Guidelines for Questions:**
+
 - **Always ask before implementing** (don't assume requirements)
 - **Number all questions** for easy reference (1., 2., 3., etc.)
 - **Prefer yes/no format** when possible for quick answers
@@ -747,6 +1040,7 @@ npm run build                 # Creates dist/ folder
   - Performance vs. simplicity trade-offs
 
 **Example:**
+
 ```
 User: "Add user profile editing"
 
@@ -776,6 +1070,7 @@ Claude: Before I implement this, I have a few questions:
 ### When Implementing Features
 
 **DO:**
+
 - Add comprehensive logging with emojis (🔍 ✅ ❌ ⚠️)
 - Implement loading and error states
 - Use existing service layer patterns
@@ -783,6 +1078,7 @@ Claude: Before I implement this, I have a few questions:
 - Update this CLAUDE.md if adding new patterns
 
 **DON'T:**
+
 - Mix business logic in route handlers (use services)
 - Bypass the multi-provider fallback chain
 - Hardcode values that should be configurable
@@ -792,18 +1088,21 @@ Claude: Before I implement this, I have a few questions:
 ### Common Development Patterns
 
 **Adding Dashboard Data:**
+
 1. Add to `dashboardService.getDashboardOverview()`
 2. Include in dashboard API response
 3. Add state in `ControlCenterPage.jsx`
 4. Pass as props to child components
 
 **Category Filtering:**
+
 1. Frontend label → Backend category mapping required
 2. New API call with category param
 3. Backend maps to provider format
 4. Always test with console logs enabled
 
 **AI Module Development:**
+
 1. Define data structure in geminiService.js
 2. Create specialized prompt template
 3. Build frontend component
@@ -827,24 +1126,27 @@ Issue Reported
 ### State Management Reference
 
 **ControlCenterPage.jsx State:**
+
 ```javascript
-articles        // Filtered by reading mode (client-side)
-allArticles     // Full dataset from API
-activeInterest  // Current category filter (triggers API call)
-readingMode     // '5m' | '15m' | '30m'
-volatility      // 0-100 score
-trendingTopics  // Array of {name, change, category}
-marketData      // {SP500, BTC, VIX}
-userStats       // {xp, level, streak, articlesRead}
-globalVectors   // Trending news with titles
+articles; // Filtered by reading mode (client-side)
+allArticles; // Full dataset from API
+activeInterest; // Current category filter (triggers API call)
+readingMode; // '5m' | '15m' | '30m'
+volatility; // 0-100 score
+trendingTopics; // Array of {name, change, category}
+marketData; // {SP500, BTC, VIX}
+userStats; // {xp, level, streak, articlesRead}
+globalVectors; // Trending news with titles
 ```
 
 **When to Reload from API:**
+
 - Initial page load
 - Category filter change (activeInterest)
 - Manual refresh
 
 **When to Filter Client-Side:**
+
 - Reading mode change
 - Sorting
 - View toggles

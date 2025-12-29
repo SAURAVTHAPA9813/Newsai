@@ -17,10 +17,22 @@ const ExplainModule = ({ article, onClose }) => {
     setLoading(true);
     setError(null);
     try {
+      // Get description with multiple fallbacks
+      const description = article.summary?.['15m'] ||
+                         article.description ||
+                         article.currentSummary ||
+                         article.content?.substring(0, 500) ||
+                         article.title;
+
+      const content = article.summary?.['30m'] ||
+                     article.content ||
+                     article.description ||
+                     article.title;
+
       const result = await aiAPI.explainArticle({
         title: article.title,
-        description: article.summary?.['15m'] || article.description,
-        content: article.summary?.['30m'] || article.content,
+        description,
+        content,
       });
 
       if (result.success) {

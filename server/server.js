@@ -89,12 +89,22 @@ const startServer = async () => {
       console.log("🔄 Generating initial trending articles cache...");
       try {
         await trendingArticlesService.generateDailyCache();
-        console.log("✅ Trending articles cache initialized successfully\n");
+        console.log("✅ Trending articles cache initialized successfully");
       } catch (error) {
-        console.warn("⚠️  Failed to initialize cache on startup, will generate on first request:", error.message, "\n");
+        console.warn("⚠️  Failed to initialize cache on startup, will generate on first request:", error.message);
       }
     } else {
-      console.log("✅ Trending articles cache already exists\n");
+      console.log("✅ Trending articles cache already exists");
+    }
+
+    // Load cache into memory for instant access (bypasses slow MongoDB)
+    try {
+      const memoryLoaded = await trendingArticlesService.loadCacheIntoMemory();
+      if (!memoryLoaded) {
+        console.warn("⚠️  Memory cache not loaded, will use MongoDB (slower)\n");
+      }
+    } catch (error) {
+      console.error("❌ Failed to load cache into memory:", error.message, "\n");
     }
 
     // Initialize Daily Quiz Cache

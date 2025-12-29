@@ -1,6 +1,6 @@
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * Generate AI-personalized summary based on user preferences
@@ -20,12 +20,9 @@ exports.generatePersonalizedSummary = async (article, preferences = {}) => {
     // Build prompt based on preferences
     const prompt = buildPrompt(article, depth, summaryStyle, tone);
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt
-    });
-
-    const summaryText = response.text.trim();
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+    const summaryText = result.response.text().trim();
 
     return {
       ...article,
@@ -209,7 +206,7 @@ Return EXACTLY 3 bullet points (start each with "- "). Keep each under 20 words.
 Insights:`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt
     });
 

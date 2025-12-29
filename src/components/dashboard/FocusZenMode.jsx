@@ -15,9 +15,17 @@ import {
   FiLink,
   FiExternalLink,
   FiStar,
+  FiChevronDown,
+  FiChevronUp,
+  FiTrendingUp,
 } from "react-icons/fi";
 import React from "react";
 import userAPI from "../../services/userAPI";
+import { createReadingSession } from "../../services/neuralAnalyticsAPI";
+import ExplainModule from '../aimodules/ExplainModule';
+import MarketImpactModule from '../aimodules/MarketImpactModule';
+import ContextTimelineModule from '../aimodules/ContextTimelineModule';
+import PerspectivesModule from '../aimodules/PerspectivesModule';
 
 const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -26,6 +34,18 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [fontSize, setFontSize] = useState("normal");
   const [copiedLink, setCopiedLink] = useState(false);
+  const [expandedModules, setExpandedModules] = useState({
+    explain: false,
+    market: false,
+    context: false,
+    perspectives: false
+  });
+
+  // Session tracking state
+  const [sessionStartTime] = useState(() => new Date());
+  const [engagementEvents, setEngagementEvents] = useState([]);
+  const [scrollDepth, setScrollDepth] = useState(0);
+  const sessionSubmitted = useRef(false);
 
   const scrollContainerRef = useRef(null);
   const utteranceRef = useRef(null);
@@ -64,6 +84,168 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
     checkSavedStatus();
   }, [article]);
 
+  // Track scroll depth
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const scrollTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight - container.clientHeight;
+      const depth = scrollHeight > 0 ? Math.round((scrollTop / scrollHeight) * 100) : 0;
+
+      if (depth > scrollDepth) {
+        setScrollDepth(depth);
+
+        // Track milestone scrolls
+        if (depth >= 25 && scrollDepth < 25) {
+          setEngagementEvents(prev => [...prev, { eventType: 'SCROLL_25', timestamp: new Date() }]);
+        } else if (depth >= 50 && scrollDepth < 50) {
+          setEngagementEvents(prev => [...prev, { eventType: 'SCROLL_50', timestamp: new Date() }]);
+        } else if (depth >= 75 && scrollDepth < 75) {
+          setEngagementEvents(prev => [...prev, { eventType: 'SCROLL_75', timestamp: new Date() }]);
+        } else if (depth >= 100 && scrollDepth < 100) {
+          setEngagementEvents(prev => [...prev, { eventType: 'SCROLL_100', timestamp: new Date() }]);
+        }
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [scrollDepth]);
+
+  // Submit reading session
+  const submitReadingSession = useCallback(async () => {
+    if (sessionSubmitted.current) return;
+    sessionSubmitted.current = true;
+
+    const endTime = new Date();
+    const durationMinutes = Math.round((endTime - sessionStartTime) / 60000); // Convert ms to minutes
+
+    // Don't submit if session was too short (less than 10 seconds)
+    if (durationMinutes < 0.17) {
+      console.log('⏭️ Session too short, skipping submission');
+      return;
+    }
+
+    const sessionData = {
+      startedAt: sessionStartTime.toISOString(),
+      endedAt: endTime.toISOString(),
+      durationMinutes: Math.max(1, durationMinutes), // Minimum 1 minute
+      device: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+      readingMode: 'intentional', // Focus Zen Mode is always intentional reading
+      topic: {
+        id: article.category?.toLowerCase() || 'general',
+        name: article.category || 'General'
+      },
+      source: {
+        name: article.source?.name || 'Unknown',
+        tier: article.sourceScore >= 80 ? 'premium' : article.sourceScore >= 60 ? 'standard' : 'basic'
+      },
+      articleId: article.id || article.url,
+      articleTitle: article.title,
+      articleUrl: article.url,
+      wordCount: article.content?.split(' ').length || 500,
+      moodTag: 'focused', // Default mood for Focus Zen Mode (lowercase per schema)
+      selfReportedAnxiety: Math.max(0, 100 - (article.anxietyScore || 50)), // Lower anxiety in focused reading
+      completionRate: Math.min(100, scrollDepth),
+      engagementEvents: engagementEvents.map(event => ({
+        eventType: event.eventType,
+        timestamp: event.timestamp.toISOString(),
+        metadata: {}
+      })),
+      verifyUsed: engagementEvents.some(e => e.eventType === 'OPENED_VERIFY_HUB'),
+      focusScore: Math.min(100, 70 + scrollDepth / 4) // Base 70 + bonus for scroll depth
+    };
+
+    try {
+      console.log('📊 Submitting reading session...', sessionData);
+      const response = await createReadingSession(sessionData);
+      if (response.success) {
+        console.log('✅ Reading session tracked successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error tracking reading session:', error);
+      // Don't block closing if session tracking fails
+    }
+  }, [article, sessionStartTime, scrollDepth, engagementEvents]);
+
+  // Handle close with session submission
+  const handleClose = useCallback(async () => {
+    await submitReadingSession();
+    onClose();
+  }, [submitReadingSession, onClose]);
+
+  // Submit session when component unmounts or page closes
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Use sendBeacon for reliable submission during page unload
+      if (!sessionSubmitted.current) {
+        const endTime = new Date();
+        const durationMinutes = Math.round((endTime - sessionStartTime) / 60000);
+
+        if (durationMinutes >= 0.17) { // At least 10 seconds
+          const sessionData = {
+            startedAt: sessionStartTime.toISOString(),
+            endedAt: endTime.toISOString(),
+            durationMinutes: Math.max(1, durationMinutes),
+            device: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+            readingMode: 'intentional',
+            topic: {
+              id: article.category?.toLowerCase() || 'general',
+              name: article.category || 'General'
+            },
+            source: {
+              name: article.source?.name || 'Unknown',
+              tier: article.sourceScore >= 80 ? 'premium' : article.sourceScore >= 60 ? 'standard' : 'basic'
+            },
+            articleId: article.id || article.url,
+            articleTitle: article.title,
+            articleUrl: article.url,
+            wordCount: article.content?.split(' ').length || 500,
+            moodTag: 'focused',
+            selfReportedAnxiety: Math.max(0, 100 - (article.anxietyScore || 50)),
+            completionRate: Math.min(100, scrollDepth),
+            engagementEvents: engagementEvents.map(event => ({
+              eventType: event.eventType,
+              timestamp: event.timestamp.toISOString(),
+              metadata: {}
+            })),
+            verifyUsed: engagementEvents.some(e => e.eventType === 'OPENED_VERIFY_HUB'),
+            focusScore: Math.min(100, 70 + scrollDepth / 4)
+          };
+
+          // Use fetch with keepalive for reliable submission during unload
+          const token = localStorage.getItem('token');
+          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+          fetch(`${API_BASE_URL}/api/analytics/sessions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token && { 'Authorization': `Bearer ${token}` })
+            },
+            body: JSON.stringify(sessionData),
+            keepalive: true, // Ensures request completes even if page is closing
+            credentials: 'include'
+          }).catch(err => {
+            console.error('Failed to submit session during unload:', err);
+          });
+
+          sessionSubmitted.current = true;
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Also submit on component unmount
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      handleBeforeUnload(); // Submit when component unmounts
+    };
+  }, [article, sessionStartTime, scrollDepth, engagementEvents]);
+
   // Optimized Text-to-Speech with proper pause/resume - reads title + preview
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
@@ -88,6 +270,14 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
       setIsPlaying(true);
     }
   }, [isPlaying, article]);
+
+  // Toggle AI module accordion
+  const toggleModule = (moduleId) => {
+    setExpandedModules(prev => ({
+      ...prev,
+      [moduleId]: !prev[moduleId]
+    }));
+  };
 
   const handleSave = async () => {
     if (isSaving) return; // Prevent double-clicks
@@ -329,7 +519,7 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
 
             {/* Close Button */}
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
               aria-label="Close reading mode"
             >
@@ -405,6 +595,123 @@ const FocusZenMode = ({ article, onClose, relatedArticles = [] }) => {
                 article.currentSummary?.substring(0, 300) + "..."}
             </p>
           </article>
+
+          {/* AI-Powered Insights Accordion */}
+          <div className="my-12 space-y-4">
+            {/* Section Header */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">AI-Powered Insights</h2>
+              <p className="text-gray-600">Click any section below to reveal AI-generated analysis</p>
+            </div>
+
+            {/* Explain Module */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+              <button
+                onClick={() => toggleModule('explain')}
+                className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white">
+                    <FiBookOpen className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-gray-900">Explain (ELI5)</h3>
+                    <p className="text-sm text-gray-600">Simplified explanation of complex topics</p>
+                  </div>
+                </div>
+                {expandedModules.explain ? (
+                  <FiChevronUp className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <FiChevronDown className="w-5 h-5 text-gray-500" />
+                )}
+              </button>
+
+              <div className={`border-t border-gray-200 p-5 bg-gray-50 ${expandedModules.explain ? 'block' : 'hidden'}`}>
+                <ExplainModule article={article} onClose={() => toggleModule('explain')} />
+              </div>
+            </div>
+
+            {/* Market Impact Module */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+              <button
+                onClick={() => toggleModule('market')}
+                className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white">
+                    <FiTrendingUp className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-gray-900">Market Impact</h3>
+                    <p className="text-sm text-gray-600">Financial and economic implications</p>
+                  </div>
+                </div>
+                {expandedModules.market ? (
+                  <FiChevronUp className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <FiChevronDown className="w-5 h-5 text-gray-500" />
+                )}
+              </button>
+
+              <div className={`border-t border-gray-200 p-5 bg-gray-50 ${expandedModules.market ? 'block' : 'hidden'}`}>
+                <MarketImpactModule article={article} onClose={() => toggleModule('market')} />
+              </div>
+            </div>
+
+            {/* Context Timeline Module */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+              <button
+                onClick={() => toggleModule('context')}
+                className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white">
+                    <FiClock className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-gray-900">Historical Context</h3>
+                    <p className="text-sm text-gray-600">Timeline and background information</p>
+                  </div>
+                </div>
+                {expandedModules.context ? (
+                  <FiChevronUp className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <FiChevronDown className="w-5 h-5 text-gray-500" />
+                )}
+              </button>
+
+              <div className={`border-t border-gray-200 p-5 bg-gray-50 ${expandedModules.context ? 'block' : 'hidden'}`}>
+                <ContextTimelineModule article={article} onClose={() => toggleModule('context')} />
+              </div>
+            </div>
+
+            {/* Perspectives Module */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+              <button
+                onClick={() => toggleModule('perspectives')}
+                className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white">
+                    <FiUser className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-gray-900">Different Perspectives</h3>
+                    <p className="text-sm text-gray-600">Multiple viewpoints on this topic</p>
+                  </div>
+                </div>
+                {expandedModules.perspectives ? (
+                  <FiChevronUp className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <FiChevronDown className="w-5 h-5 text-gray-500" />
+                )}
+              </button>
+
+              <div className={`border-t border-gray-200 p-5 bg-gray-50 ${expandedModules.perspectives ? 'block' : 'hidden'}`}>
+                <PerspectivesModule article={article} onClose={() => toggleModule('perspectives')} />
+              </div>
+            </div>
+          </div>
 
           {/* Premium Subscription Paywall */}
           <div className="my-16 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-2xl p-10 text-center shadow-lg">

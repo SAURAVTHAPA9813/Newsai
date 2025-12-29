@@ -2,41 +2,32 @@ import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 const SourceDiversityDonut = ({ sourceMetrics }) => {
-  // Aggregate by tier
-  const tierData = {};
-  sourceMetrics.forEach((source) => {
-    const tier = source.tier || 'UNKNOWN';
-    if (!tierData[tier]) {
-      tierData[tier] = {
-        name: tier,
-        value: 0,
-        count: 0,
-        minutes: 0,
-      };
-    }
-    tierData[tier].value += source.articlesCount;
-    tierData[tier].count += source.articlesCount;
-    tierData[tier].minutes += source.minutesRead;
-  });
+  // Use actual source names instead of tiers
+  const sourceDistribution = sourceMetrics?.sourceDistribution || [];
 
-  const chartData = Object.values(tierData).map((tier) => ({
-    ...tier,
-    displayName:
-      tier.name === 'TIER_1'
-        ? 'Tier 1 (Major outlets)'
-        : tier.name === 'TIER_2'
-        ? 'Tier 2 (Niche/Specialty)'
-        : tier.name === 'TIER_3'
-        ? 'Tier 3 (Unknown/Low-rep)'
-        : 'Unknown',
+  const chartData = sourceDistribution.map((source) => ({
+    name: source.name,
+    displayName: source.name, // Actual source name (TechCrunch, BBC, etc.)
+    value: source.sessionsCount || 0,
+    count: source.sessionsCount || 0,
+    minutes: source.minutesRead || 0,
+    tier: source.tier || 'unknown'
   }));
 
-  const COLORS = {
-    TIER_1: '#10b981',
-    TIER_2: '#4169E1',
-    TIER_3: '#f97316',
-    UNKNOWN: '#94a3b8',
-  };
+  // Color palette for different sources
+  const COLORS = [
+    '#4169E1', // Blue
+    '#10b981', // Green
+    '#f97316', // Orange
+    '#8b5cf6', // Purple
+    '#ec4899', // Pink
+    '#f59e0b', // Amber
+    '#06b6d4', // Cyan
+    '#84cc16', // Lime
+  ];
+
+  // Assign colors to sources
+  const getColor = (index) => COLORS[index % COLORS.length];
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -112,7 +103,7 @@ const SourceDiversityDonut = ({ sourceMetrics }) => {
             paddingAngle={2}
           >
             {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[entry.name] || COLORS.UNKNOWN} />
+              <Cell key={`cell-${index}`} fill={getColor(index)} />
             ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
@@ -120,16 +111,16 @@ const SourceDiversityDonut = ({ sourceMetrics }) => {
       </ResponsiveContainer>
 
       <div className="mt-4 space-y-2">
-        {chartData.map((tier) => (
-          <div key={tier.name} className="flex items-center justify-between text-xs">
+        {chartData.map((source, index) => (
+          <div key={source.name} className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <div
                 className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: COLORS[tier.name] || COLORS.UNKNOWN }}
+                style={{ backgroundColor: getColor(index) }}
               ></div>
-              <span className="text-text-secondary">{tier.displayName}</span>
+              <span className="text-text-secondary">{source.displayName}</span>
             </div>
-            <span className="font-bold text-text-dark">{tier.count} articles</span>
+            <span className="font-bold text-text-dark">{source.count} articles</span>
           </div>
         ))}
       </div>

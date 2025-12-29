@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { FiTrendingUp, FiEye, FiShare2 } from 'react-icons/fi'
 import trendingAPI from '../services/trendingAPI'
 import FocusZenMode from '../components/dashboard/FocusZenMode'
+import articleTracker from '../services/articleTracker'
 
 const TrendingPage = () => {
   const [activeTimeFilter, setActiveTimeFilter] = useState('today')
@@ -44,11 +45,22 @@ const TrendingPage = () => {
 
   // Handle article click - open in Focus Zen Mode
   const handleArticleClick = (article) => {
+    // 🎯 UNIVERSAL ARTICLE TRACKING - Track article view from Trending page
+    const sessionId = articleTracker.trackArticleView(article);
+    console.log('🔍 [Trending] Started tracking article session:', sessionId);
+
     setSelectedArticle(article)
   }
 
   // Close Focus Zen Mode
   const handleCloseFocusZen = () => {
+    // 🎯 End article tracking session when closing
+    if (selectedArticle) {
+      const articleId = selectedArticle.id || selectedArticle.url;
+      articleTracker.endArticleSession(articleId, 100); // 100% completion when explicitly closed
+      console.log('✅ [Trending] Ended tracking session for:', selectedArticle.title);
+    }
+
     setSelectedArticle(null)
   }
 

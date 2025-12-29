@@ -18,13 +18,40 @@ import {
 import SourceScoreBar from "./SourceScoreBar";
 import VerificationBadge from "./VerificationBadge";
 import ImpactTags from "./ImpactTags";
-import AICommandDrawer from "./AICommandDrawer";
 import Icon from "../common/Icon";
 import IconButton from "../common/IconButton";
 
+// Skeleton loading component
+const ArticleCardSkeleton = () => (
+  <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-serenity-blue-light overflow-hidden shadow-card">
+    <div className="animate-pulse">
+      {/* Image skeleton */}
+      <div className="relative h-48 bg-gray-300"></div>
+
+      {/* Content skeleton */}
+      <div className="p-6">
+        {/* Title skeleton */}
+        <div className="h-6 bg-gray-300 rounded mb-3 w-3/4"></div>
+        <div className="h-6 bg-gray-300 rounded mb-4 w-1/2"></div>
+
+        {/* Impact tags skeleton */}
+        <div className="flex gap-2 mb-4">
+          <div className="h-8 w-20 bg-gray-200 rounded-full"></div>
+          <div className="h-8 w-24 bg-gray-200 rounded-full"></div>
+        </div>
+
+        {/* Footer skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="h-4 bg-gray-200 rounded w-32"></div>
+          <div className="h-4 bg-gray-200 rounded w-20"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 const HolographicArticleCard = ({ article, readingMode, onClick }) => {
   const [isSaved, setIsSaved] = useState(false);
-  const [showAIModules, setShowAIModules] = useState(false);
 
   const {
     id,
@@ -44,7 +71,7 @@ const HolographicArticleCard = ({ article, readingMode, onClick }) => {
 
   // Format date to readable format
   const formatDate = (dateString) => {
-    if (!dateString) return 'Recently';
+    if (!dateString) return "Recently";
 
     const date = new Date(dateString);
     const now = new Date();
@@ -59,8 +86,8 @@ const HolographicArticleCard = ({ article, readingMode, onClick }) => {
     if (diffDays < 7) return `${diffDays}d ago`;
 
     // Otherwise show formatted date
-    const options = { month: 'short', day: 'numeric', year: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
+    const options = { month: "short", day: "numeric", year: "numeric" };
+    return date.toLocaleDateString("en-US", options);
   };
 
   // Determine if anxiety guard should be active
@@ -115,11 +142,6 @@ const HolographicArticleCard = ({ article, readingMode, onClick }) => {
     e.stopPropagation();
     // Mock share functionality
     console.log("Sharing article:", title);
-  };
-
-  const handleAIModuleToggle = (e) => {
-    e.stopPropagation();
-    setShowAIModules(!showAIModules);
   };
 
   return (
@@ -210,19 +232,6 @@ const HolographicArticleCard = ({ article, readingMode, onClick }) => {
           {title}
         </h3>
 
-        {/* Summary */}
-        <p
-          className={`text-sm text-text-secondary leading-relaxed mb-4 ${
-            readingMode === "5m"
-              ? "line-clamp-2"
-              : readingMode === "15m"
-              ? "line-clamp-3"
-              : "line-clamp-4"
-          }`}
-        >
-          {currentSummary}
-        </p>
-
         {/* Impact Tags */}
         <div className="mb-4">
           <ImpactTags tags={impactTags} />
@@ -251,11 +260,9 @@ const HolographicArticleCard = ({ article, readingMode, onClick }) => {
           </div>
         </div>
       </div>
-
-      {/* AI Command Drawer */}
-      <AICommandDrawer articleId={id} isOpen={true} onClose={() => {}} />
     </motion.div>
   );
 };
 
 export default HolographicArticleCard;
+export { ArticleCardSkeleton };

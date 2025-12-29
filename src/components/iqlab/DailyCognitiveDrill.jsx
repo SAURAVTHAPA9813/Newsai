@@ -1,53 +1,161 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiCpu, FiCheckCircle, FiXCircle, FiSkipForward, FiCheck, FiX } from 'react-icons/fi';
+import { FiCpu, FiCheckCircle, FiXCircle, FiSkipForward, FiCheck, FiX, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { submitDailyQuiz } from '../../services/iqLabAPI';
 
-const DailyCognitiveDrill = ({ question, attempts, onSubmit, onPractice }) => {
+const DailyCognitiveDrill = ({ question, attempts, onSubmit }) => {
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userAnswers, setUserAnswers] = useState({});
   const [selectedIndex, setSelectedIndex] = useState(null);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [isAnswered, setIsAnswered] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [results, setResults] = useState(null);
 
-  const hasCompletedToday = attempts.some(a => a.countsForDailyReward);
-  const isPracticeMode = hasCompletedToday;
+  // Check if quiz was already attempted today
+  const hasAttempted = question.attempted || attempts.length > 0;
+
+  // Get current question
+  const currentQuestion = question.questions?.[currentQuestionIndex];
+  const totalQuestions = question.questions?.length || 0;
+  const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
 
   const handleOptionClick = (index) => {
-    if (isAnswered) return;
+    if (quizCompleted || hasAttempted) return;
     setSelectedIndex(index);
   };
 
-  const handleSubmit = async () => {
-    if (selectedIndex === null || isAnswered) return;
+  const handleNextQuestion = () => {
+    // Save current answer
+    if (selectedIndex !== null) {
+      setUserAnswers(prev => ({
+        ...prev,
+        [currentQuestionIndex]: selectedIndex
+      }));
+    }
 
-    setIsAnswered(true);
-    setShowExplanation(true);
-    await onSubmit(question.id, selectedIndex);
+    // Move to next question
+    if (currentQuestionIndex < totalQuestions - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      // Load saved answer for next question if exists
+      const savedAnswer = userAnswers[currentQuestionIndex + 1];
+      setSelectedIndex(savedAnswer !== undefined ? savedAnswer : null);
+    }
   };
 
-  const handleSkip = async () => {
-    if (isAnswered) return;
-    setIsAnswered(true);
-    setShowExplanation(true);
-    await onSubmit(question.id, null);
+  const handlePreviousQuestion = () => {
+    // Save current answer
+    if (selectedIndex !== null) {
+      setUserAnswers(prev => ({
+        ...prev,
+        [currentQuestionIndex]: selectedIndex
+      }));
+    }
+
+    // Move to previous question
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+      // Load saved answer for previous question
+      const savedAnswer = userAnswers[currentQuestionIndex - 1];
+      setSelectedIndex(savedAnswer !== undefined ? savedAnswer : null);
+    }
   };
 
-  const handlePractice = () => {
-    setSelectedIndex(null);
-    setShowExplanation(false);
-    setIsAnswered(false);
-    onPractice();
+  const handleSubmitQuiz = async () => {
+    if (quizCompleted || hasAttempted) return;
+
+    // Save current answer before submitting
+    const finalAnswers = {
+      ...userAnswers,
+      [currentQuestionIndex]: selectedIndex
+    };
+
+    // Build answers array - backend expects simple array of answer indices
+    const answersArray = [];
+    for (let i = 0; i < totalQuestions; i++) {
+      // Backend expects just the answer index (0, 1, 2, 3), not an object
+      answersArray.push(finalAnswers[i] !== undefined ? finalAnswers[i] : -1);
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await submitDailyQuiz(question.id, answersArray, 0);
+
+      if (response.success) {
+        setQuizCompleted(true);
+        setResults(response.data.results);
+
+        // Call parent's onSubmit to refresh state
+        if (onSubmit) {
+          await onSubmit();
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting quiz:', error);
+      alert('Failed to submit quiz. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const isCorrect = isAnswered && selectedIndex === question.correctIndex;
-  const isIncorrect = isAnswered && selectedIndex !== null && selectedIndex !== question.correctIndex;
+  // Calculate answered questions count
+  const answeredCount = Object.keys({ ...userAnswers, ...(selectedIndex !== null ? { [currentQuestionIndex]: selectedIndex } : {}) }).length;
 
   const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case 'BEGINNER': return 'bg-green-100 text-green-700 border-green-300';
-      case 'INTERMEDIATE': return 'bg-amber-100 text-amber-700 border-amber-300';
-      case 'ADVANCED': return 'bg-red-100 text-red-700 border-red-300';
+    switch (difficulty?.toLowerCase()) {
+      case 'easy': return 'bg-green-100 text-green-700 border-green-300';
+      case 'medium': return 'bg-amber-100 text-amber-700 border-amber-300';
+      case 'hard': return 'bg-red-100 text-red-700 border-red-300';
       default: return 'bg-gray-100 text-gray-700 border-gray-300';
     }
   };
+
+  // Loading state
+  if (!currentQuestion) {
+    return (
+      <div className="rounded-3xl border border-brand-blue/20 p-6 text-center" style={{
+        background: 'rgba(255, 255, 255, 0.7)',
+        backdropFilter: 'blur(20px)'
+      }}>
+        <p className="text-text-secondary">Loading quiz...</p>
+      </div>
+    );
+  }
+
+  // Already attempted state
+  if (hasAttempted && attempts.length > 0) {
+    const lastAttempt = attempts[0];
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-3xl border border-brand-blue/20 p-6"
+        style={{
+          background: 'rgba(255, 255, 255, 0.7)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 32px rgba(65, 105, 225, 0.1)'
+        }}
+      >
+        <div className="text-center py-8">
+          <FiCheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h3 className="text-2xl font-bold text-text-dark mb-2">Quiz Completed!</h3>
+          <p className="text-text-secondary mb-4">You've already completed today's quiz</p>
+          <div className="flex items-center justify-center gap-6 mb-6">
+            <div>
+              <div className="text-3xl font-black text-sky-600">{lastAttempt.score}</div>
+              <div className="text-xs text-text-secondary">Score</div>
+            </div>
+            <div>
+              <div className="text-3xl font-black text-green-600">{lastAttempt.percentage}%</div>
+              <div className="text-xs text-text-secondary">Accuracy</div>
+            </div>
+          </div>
+          <p className="text-sm text-text-secondary">Come back tomorrow for a new challenge!</p>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -63,26 +171,42 @@ const DailyCognitiveDrill = ({ question, attempts, onSubmit, onPractice }) => {
     >
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <FiCpu className="w-5 h-5 text-sky-600" />
-          <h2 className="text-lg font-bold text-text-dark uppercase tracking-wider">
-            Daily Cognitive Drill
-          </h2>
-          {isPracticeMode && (
-            <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700">
-              PRACTICE
-            </span>
-          )}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <FiCpu className="w-5 h-5 text-sky-600" />
+            <h2 className="text-lg font-bold text-text-dark uppercase tracking-wider">
+              Daily Cognitive Drill
+            </h2>
+          </div>
+          <div className="text-sm font-bold text-sky-600">
+            Question {currentQuestionIndex + 1} of {totalQuestions}
+          </div>
         </div>
         <p className="text-xs text-text-secondary mb-3">Based on today's headlines</p>
+
+        {/* Progress Bar */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-text-secondary">
+              Progress: {answeredCount}/{totalQuestions} answered
+            </span>
+          </div>
+          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${(answeredCount / totalQuestions) * 100}%` }}
+              className="h-full bg-gradient-to-r from-sky-500 to-pink-500"
+            />
+          </div>
+        </div>
 
         {/* Pills */}
         <div className="flex flex-wrap gap-2">
           <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
-            Topic: {question.topicLabel}
+            Category: {currentQuestion.category || 'General'}
           </span>
-          <span className={`px-3 py-1 rounded-lg text-xs font-semibold border ${getDifficultyColor(question.difficulty)}`}>
-            {question.difficulty}
+          <span className={`px-3 py-1 rounded-lg text-xs font-semibold border ${getDifficultyColor(currentQuestion.difficulty)}`}>
+            {currentQuestion.difficulty || 'Medium'}
           </span>
         </div>
       </div>
@@ -90,148 +214,120 @@ const DailyCognitiveDrill = ({ question, attempts, onSubmit, onPractice }) => {
       {/* Question */}
       <div className="mb-6">
         <p className="text-lg font-semibold text-text-dark leading-relaxed">
-          {question.question}
+          {currentQuestion.question}
         </p>
       </div>
 
       {/* Options */}
       <div className="space-y-2 mb-6">
-        {question.options.map((option, index) => {
+        {currentQuestion.options?.map((option, index) => {
           const isSelected = selectedIndex === index;
-          const isThisCorrect = index === question.correctIndex;
-          const showCorrect = isAnswered && isThisCorrect;
-          const showIncorrect = isAnswered && isSelected && !isThisCorrect;
 
           return (
             <motion.button
               key={index}
               onClick={() => handleOptionClick(index)}
-              disabled={isAnswered}
-              whileHover={!isAnswered ? { scale: 1.01, x: 4 } : {}}
-              whileTap={!isAnswered ? { scale: 0.99 } : {}}
+              disabled={quizCompleted}
+              whileHover={!quizCompleted ? { scale: 1.01, x: 4 } : {}}
+              whileTap={!quizCompleted ? { scale: 0.99 } : {}}
               className={`w-full text-left px-4 py-4 rounded-xl font-medium text-base transition-all ${
-                showCorrect
-                  ? 'bg-green-100 border-2 border-green-500 text-green-900'
-                  : showIncorrect
-                  ? 'bg-red-100 border-2 border-red-500 text-red-900'
-                  : isSelected
+                isSelected
                   ? 'bg-brand-blue/20 border-2 border-brand-blue text-text-dark'
                   : 'bg-white/60 border border-gray-300 text-text-dark hover:border-brand-blue/50'
-              } ${isAnswered ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+              } ${quizCompleted ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
             >
               <div className="flex items-center gap-3">
                 <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  showCorrect
-                    ? 'bg-green-500 text-white'
-                    : showIncorrect
-                    ? 'bg-red-500 text-white'
-                    : isSelected
+                  isSelected
                     ? 'bg-brand-blue text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}>
-                  {showCorrect ? <FiCheck /> : showIncorrect ? <FiX /> : String.fromCharCode(65 + index)}
+                  {String.fromCharCode(65 + index)}
                 </span>
                 <span className="flex-1">{option}</span>
-                {showCorrect && <FiCheckCircle className="w-5 h-5 text-green-600" />}
-                {showIncorrect && <FiXCircle className="w-5 h-5 text-red-600" />}
               </div>
             </motion.button>
           );
         })}
       </div>
 
-      {/* Actions */}
-      {!isAnswered && (
+      {/* Navigation Actions */}
+      {!quizCompleted && (
         <div className="flex gap-3">
+          {/* Previous Button */}
           <motion.button
-            onClick={handleSubmit}
-            disabled={selectedIndex === null}
-            whileHover={selectedIndex !== null ? { scale: 1.02 } : {}}
-            whileTap={selectedIndex !== null ? { scale: 0.98 } : {}}
-            className={`flex-1 px-6 py-4 rounded-xl font-bold text-base uppercase tracking-wider transition-all ${
-              selectedIndex !== null
-                ? 'bg-gradient-to-r from-sky-500 to-pink-500 text-white shadow-lg hover:shadow-xl'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            onClick={handlePreviousQuestion}
+            disabled={currentQuestionIndex === 0}
+            whileHover={currentQuestionIndex > 0 ? { scale: 1.02 } : {}}
+            whileTap={currentQuestionIndex > 0 ? { scale: 0.98 } : {}}
+            className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 ${
+              currentQuestionIndex > 0
+                ? 'bg-white/80 text-text-dark border border-gray-300 hover:border-brand-blue/50'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            Submit Answer
+            <FiChevronLeft className="w-4 h-4" />
+            Previous
           </motion.button>
-          <motion.button
-            onClick={handleSkip}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="px-4 py-4 rounded-xl font-semibold text-base bg-white/60 text-text-secondary border border-gray-300 hover:border-brand-blue/50 transition-all flex items-center gap-2"
-          >
-            <FiSkipForward className="w-4 h-4" />
-            Skip
-          </motion.button>
+
+          {/* Next or Submit Button */}
+          {!isLastQuestion ? (
+            <motion.button
+              onClick={handleNextQuestion}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex-1 px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wider bg-gradient-to-r from-sky-500 to-blue-500 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+            >
+              Next Question
+              <FiChevronRight className="w-4 h-4" />
+            </motion.button>
+          ) : (
+            <motion.button
+              onClick={handleSubmitQuiz}
+              disabled={isSubmitting || answeredCount < totalQuestions}
+              whileHover={answeredCount === totalQuestions && !isSubmitting ? { scale: 1.02 } : {}}
+              whileTap={answeredCount === totalQuestions && !isSubmitting ? { scale: 0.98 } : {}}
+              className={`flex-1 px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wider transition-all ${
+                answeredCount === totalQuestions && !isSubmitting
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg hover:shadow-xl'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Quiz'}
+            </motion.button>
+          )}
         </div>
       )}
 
-      {/* XP Feedback */}
+      {/* Quiz Completed Feedback */}
       <AnimatePresence>
-        {isAnswered && !isPracticeMode && selectedIndex !== null && (
+        {quizCompleted && results && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="mt-4 p-4 rounded-xl text-center"
+            className="mt-6 p-6 rounded-xl text-center"
             style={{
-              background: isCorrect
-                ? 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05))'
-                : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05))',
-              border: isCorrect ? '2px solid rgb(34, 197, 94)' : '2px solid rgb(239, 68, 68)'
+              background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05))',
+              border: '2px solid rgb(34, 197, 94)'
             }}
           >
-            <div className="text-2xl font-black mb-1" style={{ color: isCorrect ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)' }}>
-              {isCorrect ? '+50 XP' : '+0 XP'}
+            <FiCheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
+            <div className="text-2xl font-black mb-2 text-green-700">
+              Quiz Completed!
             </div>
-            <div className="text-xs text-text-secondary">
-              {isCorrect ? 'Daily XP earned · News IQ updated' : 'Try the next daily drill tomorrow'}
+            <div className="text-sm text-text-secondary mb-4">
+              Your answers have been submitted. Reloading stats...
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Explanation */}
-      <AnimatePresence>
-        {showExplanation && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-6 p-5 rounded-xl bg-blue-50/80 border border-blue-300"
-          >
-            <div className="text-xs font-bold text-blue-900 uppercase tracking-wider mb-2">
-              Explanation
-            </div>
-            <p className="text-sm text-blue-900 leading-relaxed">
-              {question.explanation}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Footer Actions */}
-      {isAnswered && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-6 flex flex-wrap gap-2"
-        >
-          <motion.button
-            onClick={handlePractice}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-sky-500/10 to-pink-500/10 text-sky-700 border border-sky-300 hover:border-sky-500 transition-all"
-          >
-            Try Another Question
-          </motion.button>
-          <button className="px-4 py-2 rounded-lg text-sm font-semibold bg-white/60 text-text-secondary border border-gray-300 hover:border-brand-blue/50 transition-all">
-            Review Related Articles
-          </button>
-        </motion.div>
+      {/* Help Text */}
+      {!quizCompleted && answeredCount < totalQuestions && (
+        <div className="mt-4 text-center text-xs text-text-secondary">
+          Answer all {totalQuestions} questions to submit the quiz
+        </div>
       )}
     </motion.div>
   );

@@ -18,9 +18,16 @@ const PerspectivesModule = ({ article, onClose }) => {
     setLoading(true);
     setError(null);
     try {
+      // Get description with multiple fallbacks
+      const description = article.summary?.['15m'] ||
+                         article.description ||
+                         article.currentSummary ||
+                         article.content?.substring(0, 500) ||
+                         article.title;
+
       const result = await aiAPI.getPerspectives({
         title: article.title,
-        description: article.summary?.['15m'] || article.description,
+        description,
       });
 
       if (result.success) {

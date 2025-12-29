@@ -99,7 +99,6 @@ const cachedArticleSchema = new mongoose.Schema({
   // Cache control
   cacheExpiry: {
     type: Date,
-    index: true,
     default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
   }
 }, {
